@@ -1,11 +1,13 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { ShoppingBag, Star } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShoppingBag, Star, Heart, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useCartStore, useNavigationStore, useSettingsStore } from '@/lib/stores';
+import { useCartStore, useNavigationStore, useSettingsStore, useWishlistStore } from '@/lib/stores';
 import type { ProductWithCategory } from '@/lib/types';
+import QuickViewModal from './QuickViewModal';
 
 interface ProductCardProps {
   product: ProductWithCategory;
@@ -16,6 +18,10 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const { addItem } = useCartStore();
   const { setStoreView, setSelectedProductId } = useNavigationStore();
   const { settings } = useSettingsStore();
+  const { toggleItem, isWishlisted } = useWishlistStore();
+  const [quickViewOpen, setQuickViewOpen] = useState(false);
+
+  const wishlisted = isWishlisted(product.id);
 
   const images: string[] = (() => {
     try {
@@ -47,6 +53,16 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
     });
   };
 
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleItem(product.id);
+  };
+
+  const handleQuickView = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setQuickViewOpen(true);
+  };
+
   const handleClick = () => {
     setSelectedProductId(product.id);
     setStoreView('product');
@@ -71,88 +87,140 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.06 }}
-      onClick={handleClick}
-      className="group cursor-pointer"
-    >
-      <div className="relative rounded-xl overflow-hidden bg-neutral-50 border border-neutral-100 transition-all duration-300 hover:shadow-lg hover:shadow-neutral-200/50 hover:border-neutral-200">
-        {/* Image container */}
-        <div className="relative aspect-square overflow-hidden">
-          <img
-            src={mainImage}
-            alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: index * 0.06 }}
+        onClick={handleClick}
+        className="group cursor-pointer"
+      >
+        <div className="relative rounded-xl overflow-hidden bg-neutral-50 border border-neutral-100 transition-all duration-300 hover:shadow-lg hover:shadow-neutral-200/50 hover:border-neutral-200">
+          {/* Image container */}
+          <div className="relative aspect-square overflow-hidden">
+            <img
+              src={mainImage}
+              alt={product.name}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
 
-          {/* Badges */}
-          <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-            {product.isNew && (
-              <Badge className="bg-neutral-900 text-white border-0 text-[10px] font-semibold px-2 py-0.5 rounded-md">
-                New
-              </Badge>
-            )}
-            {discount > 0 && (
-              <Badge className="bg-rose-500 text-white border-0 text-[10px] font-semibold px-2 py-0.5 rounded-md">
-                -{discount}%
-              </Badge>
-            )}
+            {/* Badges - top left */}
+            <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+              {product.isNew && (
+                <Badge className="bg-neutral-900 text-white border-0 text-[10px] font-semibold px-2 py-0.5 rounded-md">
+                  New
+                </Badge>
+              )}
+              {discount > 0 && (
+                <Badge className="bg-rose-500 text-white border-0 text-[10px] font-semibold px-2 py-0.5 rounded-md">
+                  -{discount}%
+                </Badge>
+              )}
+            </div>
+
+            {/* Wishlist Heart - top right */}
+            <div className="absolute top-3 right-3 z-10">
+              <motion.button
+                whileTap={{ scale: 0.85 }}
+                onClick={handleWishlist}
+                className="size-9 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-sm border border-neutral-200/50 transition-colors hover:bg-white"
+                aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+              >
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={wishlisted ? 'filled' : 'empty'}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Heart
+                      className={`size-4 ${
+                        wishlisted
+                          ? 'fill-rose-500 text-rose-500'
+                          : 'fill-transparent text-neutral-300'
+                      } transition-colors`}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </motion.button>
+            </div>
+
+            {/* Hover actions - bottom */}
+            <div className="absolute bottom-3 left-3 right-3 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hidden sm:flex gap-2">
+              <Button
+                onClick={handleAddToCart}
+                className="flex-1 h-10 bg-white/95 backdrop-blur-sm hover:bg-white text-neutral-900 font-medium text-sm rounded-lg shadow-md border border-neutral-200/50"
+              >
+                <ShoppingBag className="size-4 mr-2" />
+                Add to Cart
+              </Button>
+              <Button
+                onClick={handleQuickView}
+                className="size-10 bg-white/95 backdrop-blur-sm hover:bg-white text-neutral-900 rounded-lg shadow-md border border-neutral-200/50 flex-shrink-0"
+              >
+                <Eye className="size-4" />
+              </Button>
+            </div>
           </div>
 
-          {/* Quick Add to Cart - Desktop hover */}
-          <div className="absolute bottom-3 left-3 right-3 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hidden sm:block">
-            <Button
-              onClick={handleAddToCart}
-              className="w-full h-10 bg-white/95 backdrop-blur-sm hover:bg-white text-neutral-900 font-medium text-sm rounded-lg shadow-md border border-neutral-200/50"
-            >
-              <ShoppingBag className="size-4 mr-2" />
-              Add to Cart
-            </Button>
-          </div>
-        </div>
-
-        {/* Info */}
-        <div className="p-4">
-          <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
-            {product.category.name}
-          </p>
-          <h3 className="text-sm font-medium text-neutral-900 leading-snug line-clamp-2 min-h-[2.5rem] group-hover:text-amber-700 transition-colors">
-            {product.name}
-          </h3>
-
-          {product.shortDesc && (
-            <p className="text-xs text-neutral-500 mt-1 line-clamp-1">
-              {product.shortDesc}
+          {/* Info */}
+          <div className="p-4">
+            <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1">
+              {product.category.name}
             </p>
-          )}
+            <h3 className="text-sm font-medium text-neutral-900 leading-snug line-clamp-2 min-h-[2.5rem] group-hover:text-amber-700 transition-colors">
+              {product.name}
+            </h3>
 
-          {renderStars(product.rating)}
-
-          {/* Price */}
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-base font-semibold text-neutral-900">
-              {settings.currencySymbol}{product.price.toFixed(2)}
-            </span>
-            {product.comparePrice && (
-              <span className="text-sm text-neutral-400 line-through">
-                {settings.currencySymbol}{product.comparePrice.toFixed(2)}
-              </span>
+            {product.shortDesc && (
+              <p className="text-xs text-neutral-500 mt-1 line-clamp-1">
+                {product.shortDesc}
+              </p>
             )}
-          </div>
 
-          {/* Mobile Add to Cart - always visible */}
-          <Button
-            onClick={handleAddToCart}
-            size="sm"
-            className="w-full mt-3 h-9 sm:hidden bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-medium rounded-lg"
-          >
-            <ShoppingBag className="size-3.5 mr-1.5" />
-            Add to Cart
-          </Button>
+            {renderStars(product.rating)}
+
+            {/* Price */}
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-base font-semibold text-neutral-900">
+                {settings.currencySymbol}{product.price.toFixed(2)}
+              </span>
+              {product.comparePrice && (
+                <span className="text-sm text-neutral-400 line-through">
+                  {settings.currencySymbol}{product.comparePrice.toFixed(2)}
+                </span>
+              )}
+            </div>
+
+            {/* Mobile Add to Cart - always visible */}
+            <div className="flex gap-2 mt-3 sm:hidden">
+              <Button
+                onClick={handleAddToCart}
+                size="sm"
+                className="flex-1 h-9 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-medium rounded-lg"
+              >
+                <ShoppingBag className="size-3.5 mr-1.5" />
+                Add to Cart
+              </Button>
+              <Button
+                onClick={handleQuickView}
+                size="sm"
+                variant="outline"
+                className="h-9 border-neutral-200 text-xs font-medium rounded-lg"
+              >
+                <Eye className="size-3.5" />
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+
+      <QuickViewModal
+        product={product}
+        open={quickViewOpen}
+        onOpenChange={setQuickViewOpen}
+      />
+    </>
   );
 }

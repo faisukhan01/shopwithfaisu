@@ -120,3 +120,25 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Hide scrollbar for category/horizontal scroll */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth scroll snap */
+.snap-x {
+  scroll-snap-type: x mandatory;
+}
+.snap-start {
+  scroll-snap-align: start;
+}
+
+/* Selection color */
+::selection {
+  background-color: oklch(0.85 0.12 80);
+}

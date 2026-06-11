@@ -186,6 +186,37 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   },
 }));
 
+// Wishlist Store
+interface WishlistStore {
+  items: string[];
+  addItem: (productId: string) => void;
+  removeItem: (productId: string) => void;
+  toggleItem: (productId: string) => void;
+  isWishlisted: (productId: string) => boolean;
+}
+
+export const useWishlistStore = create<WishlistStore>((set, get) => ({
+  items: typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('wishlist') || '[]') : [],
+  addItem: (productId) => {
+    const { items } = get();
+    if (!items.includes(productId)) {
+      const newItems = [...items, productId];
+      localStorage.setItem('wishlist', JSON.stringify(newItems));
+      set({ items: newItems });
+    }
+  },
+  removeItem: (productId) => {
+    const newItems = get().items.filter((id) => id !== productId);
+    localStorage.setItem('wishlist', JSON.stringify(newItems));
+    set({ items: newItems });
+  },
+  toggleItem: (productId) => {
+    if (get().items.includes(productId)) get().removeItem(productId);
+    else get().addItem(productId);
+  },
+  isWishlisted: (productId) => get().items.includes(productId),
+}));
+
 // Auth Store
 interface AuthStore {
   user: { id: string; email: string; name: string; role: string; avatar?: string | null } | null;

@@ -1,5 +1,5 @@
 // Store types
-export type StoreView = 'home' | 'shop' | 'product' | 'cart' | 'checkout' | 'checkout-success' | 'orders' | 'login' | 'register' | 'page';
+export type StoreView = 'home' | 'shop' | 'product' | 'cart' | 'checkout' | 'checkout-success' | 'orders' | 'login' | 'register' | 'page' | 'wishlist';
 export type AdminView = 'dashboard' | 'products' | 'product-form' | 'categories' | 'orders' | 'order-detail' | 'customers' | 'settings' | 'pages' | 'coupons' | 'reviews';
 
 export interface StoreState {

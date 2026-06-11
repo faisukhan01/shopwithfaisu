@@ -4,15 +4,15 @@ import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigationStore, useCartStore, useSettingsStore, useAuthStore } from '@/lib/stores';
 import Header from '@/components/store/Header';
-import HeroSection from '@/components/store/HeroSection';
-import CategoryGrid from '@/components/store/CategoryGrid';
-import ProductGrid from '@/components/store/ProductGrid';
-import ProductDetail from '@/components/store/ProductDetail';
 import CartDrawer from '@/components/store/CartDrawer';
 import CheckoutForm from '@/components/store/CheckoutForm';
 import CheckoutSuccess from '@/components/store/CheckoutSuccess';
 import OrderHistory from '@/components/store/OrderHistory';
+import WishlistView from '@/components/store/WishlistView';
 import Footer from '@/components/store/Footer';
+import MegaHomePage from '@/components/store/MegaHomePage';
+import ProductGrid from '@/components/store/ProductGrid';
+import ProductDetail from '@/components/store/ProductDetail';
 import AdminLayout from '@/components/admin/AdminLayout';
 import Dashboard from '@/components/admin/Dashboard';
 import ProductManager from '@/components/admin/ProductManager';
@@ -34,11 +34,7 @@ export default function Home() {
   useEffect(() => {
     fetch('/api/settings')
       .then((res) => res.json())
-      .then((data) => {
-        if (data && typeof data === 'object') {
-          loadSettings(data);
-        }
-      })
+      .then((data) => { if (data && typeof data === 'object') loadSettings(data); })
       .catch(() => {});
   }, [loadSettings]);
 
@@ -49,29 +45,14 @@ export default function Home() {
       try {
         const data = JSON.parse(atob(token));
         if (data.userId && data.email) {
-          setUser({
-            id: data.userId,
-            email: data.email,
-            name: data.name || data.email.split('@')[0],
-            role: data.role || 'customer',
-            avatar: data.avatar || null,
-          });
+          setUser({ id: data.userId, email: data.email, name: data.name || data.email.split('@')[0], role: data.role || 'customer', avatar: data.avatar || null });
         }
-      } catch {
-        localStorage.removeItem('authToken');
-      }
+      } catch { localStorage.removeItem('authToken'); }
     }
   }, [isAuthenticated, user, setUser]);
 
-  useEffect(() => {
-    if (storeView === 'cart') {
-      setCartOpen(true);
-    }
-  }, [storeView, setCartOpen]);
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [storeView, adminView]);
+  useEffect(() => { if (storeView === 'cart') setCartOpen(true); }, [storeView, setCartOpen]);
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [storeView, adminView]);
 
   // Admin panel
   if (isAdminMode) {
@@ -90,7 +71,6 @@ export default function Home() {
         default: return <Dashboard />;
       }
     };
-
     return <AdminLayout>{renderAdminView()}</AdminLayout>;
   }
 
@@ -103,55 +83,15 @@ export default function Home() {
 
   const renderView = () => {
     switch (storeView) {
-      case 'home':
-        return (
-          <>
-            <HeroSection />
-            <CategoryGrid />
-            <ProductGrid featured />
-            <section className="py-16 sm:py-24 bg-neutral-50">
-              <div className="max-w-2xl mx-auto px-4 text-center">
-                <h2 className="text-2xl sm:text-3xl font-semibold text-neutral-900 tracking-tight">
-                  Stay in the loop
-                </h2>
-                <p className="text-neutral-500 mt-3 text-sm sm:text-base leading-relaxed">
-                  Get exclusive access to new arrivals, special offers, and style inspiration delivered to your inbox.
-                </p>
-                <div className="mt-6 flex gap-2 max-w-sm mx-auto">
-                  <input
-                    type="email"
-                    placeholder="Your email address"
-                    className="flex-1 h-11 px-4 text-sm border border-neutral-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
-                  />
-                  <button className="h-11 px-6 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 transition-colors">
-                    Subscribe
-                  </button>
-                </div>
-              </div>
-            </section>
-          </>
-        );
-      case 'shop':
-        return <ProductGrid />;
-      case 'product':
-        return <ProductDetail />;
-      case 'cart':
-        setCartOpen(true);
-        return <ProductGrid />;
-      case 'checkout':
-        return <CheckoutForm />;
-      case 'checkout-success':
-        return <CheckoutSuccess />;
-      case 'orders':
-        return <OrderHistory />;
-      default:
-        return (
-          <>
-            <HeroSection />
-            <CategoryGrid />
-            <ProductGrid featured />
-          </>
-        );
+      case 'home': return <MegaHomePage />;
+      case 'shop': return <ProductGrid />;
+      case 'product': return <ProductDetail />;
+      case 'cart': setCartOpen(true); return <ProductGrid />;
+      case 'checkout': return <CheckoutForm />;
+      case 'checkout-success': return <CheckoutSuccess />;
+      case 'orders': return <OrderHistory />;
+      case 'wishlist': return <WishlistView />;
+      default: return <MegaHomePage />;
     }
   };
 
