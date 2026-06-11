@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2,
   CreditCard,
-  Tag,
+  X,
   ArrowLeft,
   Truck,
   Shield,
@@ -47,6 +47,9 @@ export default function CheckoutForm() {
   const [couponCode, setCouponCode] = useState('');
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponType, setCouponType] = useState<'percentage' | 'fixed'>('percentage');
+  const [couponRawValue, setCouponRawValue] = useState(0);
+  const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
 
   const {
@@ -73,12 +76,12 @@ export default function CheckoutForm() {
 
   const subtotal = getSubtotal();
   const shipping = subtotal >= settings.freeShippingThreshold ? 0 : 5.99;
-  const discountAmount = couponApplied ? subtotal * (couponDiscount / 100) : 0;
-  const total = subtotal - discountAmount + shipping;
+  const total = subtotal + shipping - (couponApplied ? couponDiscount : 0);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
     setCouponError('');
+    setCouponLoading(true);
 
     try {
       const res = await fetch('/api/coupons/validate', {
@@ -88,18 +91,32 @@ export default function CheckoutForm() {
       });
       const data = await res.json();
 
-      if (res.ok) {
+      if (data.valid) {
         setCouponApplied(true);
-        setCouponDiscount(data.discount || 0);
+        setCouponType(data.type || 'percentage');
+        setCouponRawValue(data.value || 0);
+        setCouponDiscount(data.discountAmount || 0);
         setCouponError('');
       } else {
         setCouponError(data.error || 'Invalid coupon code');
         setCouponApplied(false);
         setCouponDiscount(0);
+        setCouponType('percentage');
       }
     } catch {
       setCouponError('Failed to validate coupon');
+    } finally {
+      setCouponLoading(false);
     }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponCode('');
+    setCouponApplied(false);
+    setCouponDiscount(0);
+    setCouponType('percentage');
+    setCouponRawValue(0);
+    setCouponError('');
   };
 
   const onSubmit = async (data: CheckoutFormData) => {
@@ -350,11 +367,79 @@ export default function CheckoutForm() {
 
             <Separator />
 
-            {/* Payment */}
+            {/* Coupon Code */}
             <section>
               <h2 className="text-sm font-semibold text-neutral-900 mb-4 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs">
                   3
+                </span>
+                Coupon Code
+              </h2>
+              <div className="space-y-3">
+                <div className="flex gap-3">
+                  <Input
+                    value={couponCode}
+                    onChange={(e) => {
+                      setCouponCode(e.target.value);
+                      setCouponError('');
+                    }}
+                    placeholder="Enter coupon code"
+                    className="h-11 border-neutral-200 flex-1"
+                    disabled={couponApplied}
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={couponApplied || !couponCode.trim() || couponLoading}
+                    className="h-11 px-6 bg-neutral-900 hover:bg-neutral-800 text-white font-medium rounded-lg transition-colors"
+                  >
+                    {couponLoading ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : couponApplied ? (
+                      'Applied'
+                    ) : (
+                      'Apply'
+                    )}
+                  </Button>
+                </div>
+                {couponError && (
+                  <p className="text-sm text-rose-500">{couponError}</p>
+                )}
+                <AnimatePresence>
+                  {couponApplied && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2.5"
+                    >
+                      <span className="text-sm text-emerald-700 font-medium">
+                        {couponType === 'percentage'
+                          ? `${couponRawValue}% off applied`
+                          : `-${settings.currencySymbol}${couponDiscount.toFixed(2)} applied`
+                        }
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="text-emerald-500 hover:text-emerald-700 transition-colors ml-3"
+                        aria-label="Remove coupon"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </section>
+
+            <Separator />
+
+            {/* Payment */}
+            <section>
+              <h2 className="text-sm font-semibold text-neutral-900 mb-4 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs">
+                  4
                 </span>
                 Payment
               </h2>
@@ -459,40 +544,6 @@ export default function CheckoutForm() {
                 ))}
               </div>
 
-              {/* Coupon */}
-              <div className="flex gap-2 mb-5">
-                <div className="relative flex-1">
-                  <Tag className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-neutral-400" />
-                  <Input
-                    value={couponCode}
-                    onChange={(e) => {
-                      setCouponCode(e.target.value);
-                      setCouponError('');
-                    }}
-                    placeholder="Coupon code"
-                    className="pl-9 h-10 text-sm border-neutral-200"
-                    disabled={couponApplied}
-                  />
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleApplyCoupon}
-                  disabled={couponApplied || !couponCode.trim()}
-                  className="h-10 px-4 text-sm border-neutral-200"
-                >
-                  {couponApplied ? 'Applied' : 'Apply'}
-                </Button>
-              </div>
-              {couponError && (
-                <p className="text-xs text-rose-500 mb-3 -mt-3">{couponError}</p>
-              )}
-              {couponApplied && (
-                <p className="text-xs text-emerald-600 mb-3 -mt-3">
-                  Coupon applied! {couponDiscount}% off
-                </p>
-              )}
-
               <Separator className="my-4" />
 
               {/* Totals */}
@@ -518,12 +569,12 @@ export default function CheckoutForm() {
                       : `${settings.currencySymbol}${shipping.toFixed(2)}`}
                   </span>
                 </div>
-                {couponApplied && discountAmount > 0 && (
+                {couponApplied && couponDiscount > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="text-emerald-600">Discount</span>
                     <span className="text-emerald-600 font-medium">
                       -{settings.currencySymbol}
-                      {discountAmount.toFixed(2)}
+                      {couponDiscount.toFixed(2)}
                     </span>
                   </div>
                 )}

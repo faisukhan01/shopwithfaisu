@@ -103,7 +103,9 @@ export default function Dashboard() {
       ]
     : [];
 
-  const totalStatusCount = data?.ordersByStatus.reduce((sum, s) => sum + s.count, 0) || 1;
+  const totalStatusCount = Array.isArray(data?.ordersByStatus)
+    ? data.ordersByStatus.reduce((sum, s) => sum + s.count, 0)
+    : Object.values(data?.ordersByStatus || {}).reduce((sum, c) => sum + c, 0) || 1;
 
   return (
     <div className="space-y-6">
@@ -247,9 +249,12 @@ export default function Dashboard() {
                     <Skeleton key={i} className="h-6 w-full" />
                   ))}
                 </div>
-              ) : data?.ordersByStatus && data.ordersByStatus.length > 0 ? (
+              ) : data?.ordersByStatus && (Array.isArray(data.ordersByStatus) ? data.ordersByStatus.length > 0 : Object.keys(data.ordersByStatus || {}).length > 0) ? (
                 <div className="space-y-3">
-                  {data.ordersByStatus.map((s) => {
+                  {(Array.isArray(data.ordersByStatus) ? data.ordersByStatus : Object.entries(data.ordersByStatus || {}).map(([status, count]) => ({
+                    status: typeof status === 'string' ? status : status,
+                    count: typeof count === 'number' ? count : count,
+                  })).map((s) => {
                     const pct = Math.round((s.count / totalStatusCount) * 100);
                     return (
                       <div key={s.status} className="space-y-1.5">

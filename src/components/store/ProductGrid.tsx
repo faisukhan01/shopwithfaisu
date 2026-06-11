@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { ChevronDown, SlidersHorizontal, X } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronDown, SlidersHorizontal, X, PackageOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -34,6 +35,8 @@ export default function ProductGrid({ featured = false }: { featured?: boolean }
   const [sortBy, setSortBy] = useState('newest');
   const [localSearch, setLocalSearch] = useState(searchQuery);
   const [totalCount, setTotalCount] = useState(0);
+  const [displayedCount, setDisplayedCount] = useState(0);
+  const prevTotalCount = useRef(totalCount);
   const pageSize = 12;
 
   const fetchProducts = useCallback(
@@ -58,7 +61,10 @@ export default function ProductGrid({ featured = false }: { featured?: boolean }
         } else {
           setProducts(data.products || []);
         }
-        setTotalCount(data.total || 0);
+        const newTotal = data.total || 0;
+        prevTotalCount.current = totalCount;
+        setTotalCount(newTotal);
+        setDisplayedCount(newTotal);
         setHasMore(data.products?.length === pageSize);
       } catch {
         // silently fail
@@ -66,7 +72,7 @@ export default function ProductGrid({ featured = false }: { featured?: boolean }
         setLoading(false);
       }
     },
-    [featured, selectedCategoryId, searchQuery, sortBy]
+    [featured, selectedCategoryId, searchQuery, sortBy, totalCount]
   );
 
   useEffect(() => {
@@ -108,6 +114,8 @@ export default function ProductGrid({ featured = false }: { featured?: boolean }
     (c) => c.id === selectedCategoryId
   )?.name;
 
+  const chipsRef = useRef<HTMLDivElement>(null);
+
   return (
     <section className="py-12 sm:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -146,9 +154,19 @@ export default function ProductGrid({ featured = false }: { featured?: boolean }
                 </Badge>
               </div>
             )}
-            <p className="text-sm text-neutral-400 mt-1">
-              {totalCount} product{totalCount !== 1 ? 's' : ''}
-            </p>
+            {/* 2b: Animated result count */}
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={displayedCount}
+                className="text-sm text-neutral-400 mt-1"
+                initial={{ opacity: 0.6, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0.6, scale: 0.96 }}
+                transition={{ duration: 0.2 }}
+              >
+                {displayedCount} product{displayedCount !== 1 ? 's' : ''}
+              </motion.p>
+            </AnimatePresence>
           </div>
         )}
 
@@ -179,43 +197,83 @@ export default function ProductGrid({ featured = false }: { featured?: boolean }
 
         {/* Filters bar - only in shop view */}
         {!featured && (
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-8 pb-6 border-b border-neutral-100">
-            {/* Search */}
-            <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-xs">
-              <Input
-                value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
-                placeholder="Search products..."
-                className="h-10 text-sm border-neutral-200 pr-8"
-              />
-              {localSearch && (
-                <button
-                  type="button"
-                  onClick={clearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
-            </form>
+          <>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 pb-6 border-b border-neutral-100">
+              {/* Search */}
+              <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-xs">
+                <Input
+                  value={localSearch}
+                  onChange={(e) => setLocalSearch(e.target.value)}
+                  placeholder="Search products..."
+                  className="h-10 text-sm border-neutral-200 pr-8"
+                />
+                {localSearch && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </form>
 
-            {/* Sort */}
-            <div className="flex items-center gap-2">
-              <SlidersHorizontal className="size-4 text-neutral-400" />
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-40 h-10 text-sm border-neutral-200">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest</SelectItem>
-                  <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                  <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                  <SelectItem value="rating">Top Rated</SelectItem>
-                  <SelectItem value="popular">Most Popular</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Sort */}
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="size-4 text-neutral-400" />
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-40 h-10 text-sm border-neutral-200">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest</SelectItem>
+                    <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                    <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                    <SelectItem value="rating">Top Rated</SelectItem>
+                    <SelectItem value="popular">Most Popular</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
+
+            {/* 2a: Category filter chips — horizontally scrollable */}
+            {categories.length > 0 && (
+              <div
+                ref={chipsRef}
+                className="flex items-center gap-2 mb-8 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1"
+              >
+                <button
+                  onClick={clearCategory}
+                  className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                    !selectedCategoryId
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  }`}
+                >
+                  All
+                </button>
+                {categories.map((cat) => {
+                  const isActive = selectedCategoryId === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategoryId(isActive ? null : cat.id)}
+                      className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                        isActive
+                          ? 'bg-amber-600 text-white'
+                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                      }`}
+                    >
+                      <span>{cat.name}</span>
+                      {isActive && (
+                        <X className="size-3 opacity-80" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
 
         {/* Product Grid */}
@@ -232,10 +290,21 @@ export default function ProductGrid({ featured = false }: { featured?: boolean }
             ))}
           </div>
         ) : products.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-neutral-500 text-lg font-medium">No products found</p>
-            <p className="text-neutral-400 text-sm mt-1">
-              Try adjusting your search or filters
+          /* 2c: Elegant empty state */
+          <motion.div
+            className="flex flex-col items-center justify-center py-24 px-4"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <div className="size-20 flex items-center justify-center rounded-full bg-neutral-100 mb-6">
+              <PackageOpen className="size-9 text-neutral-300" />
+            </div>
+            <h3 className="text-lg font-semibold text-neutral-900 mb-1.5">
+              No products found
+            </h3>
+            <p className="text-sm text-neutral-400 max-w-xs text-center leading-relaxed mb-6">
+              We couldn&apos;t find anything matching your criteria. Try adjusting your search or browse our full collection.
             </p>
             <Button
               variant="outline"
@@ -243,11 +312,11 @@ export default function ProductGrid({ featured = false }: { featured?: boolean }
                 clearCategory();
                 clearSearch();
               }}
-              className="mt-4 text-sm"
+              className="h-10 px-6 text-sm font-medium border-neutral-200 hover:bg-neutral-50 rounded-lg"
             >
-              Clear Filters
+              Clear All Filters
             </Button>
-          </div>
+          </motion.div>
         ) : (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">

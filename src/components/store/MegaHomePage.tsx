@@ -12,9 +12,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Quote,
+  Eye,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useNavigationStore, useSettingsStore } from '@/lib/stores';
+import { useNavigationStore, useSettingsStore, useRecentlyViewedStore } from '@/lib/stores';
 import type { ProductWithCategory, CategoryWithCount } from '@/lib/types';
 import ProductCard from '@/components/store/ProductCard';
 
@@ -285,6 +287,108 @@ function ProductRow({ title, subtitle, apiParams, viewAllSort }: {
   );
 }
 
+// ==================== RECENTLY VIEWED SECTION ====================
+function RecentlyViewedSection() {
+  const { items, clearAll } = useRecentlyViewedStore();
+  const { setSelectedProductId, setStoreView } = useNavigationStore();
+  const { settings } = useSettingsStore();
+
+  if (items.length === 0) return null;
+
+  const handleClick = (item: typeof items[0]) => {
+    setSelectedProductId(item.id);
+    setStoreView('product');
+  };
+
+  const getFirstImage = (images: string) => {
+    try {
+      const parsed = JSON.parse(images);
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : null;
+    } catch {
+      return images || null;
+    }
+  };
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ duration: 0.45 }}
+      className="py-10 sm:py-14"
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-end justify-between mb-6 sm:mb-8">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">Recently Viewed</h2>
+            <p className="text-sm text-neutral-500 mt-1">Products you&apos;ve been looking at</p>
+          </div>
+          <button
+            onClick={clearAll}
+            className="flex items-center gap-1.5 text-sm font-medium text-neutral-400 hover:text-neutral-700 transition-colors"
+          >
+            <X className="size-3.5" />
+            Clear
+          </button>
+        </div>
+        <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
+          {items.slice(0, 8).map((item, i) => {
+            const img = getFirstImage(item.images);
+            const hasDiscount = item.comparePrice && item.comparePrice > item.price;
+            return (
+              <motion.button
+                key={item.id}
+                initial={{ opacity: 0, x: 12 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.3, delay: i * 0.04 }}
+                onClick={() => handleClick(item)}
+                className="group flex-shrink-0 w-[140px] sm:w-[165px] rounded-xl border border-neutral-100 bg-neutral-50 overflow-hidden text-left hover:border-neutral-200 hover:shadow-sm transition-all"
+              >
+                <div className="relative aspect-square overflow-hidden bg-neutral-100">
+                  {img ? (
+                    <img
+                      src={img}
+                      alt={item.name}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-neutral-300">
+                      <Eye className="size-6" />
+                    </div>
+                  )}
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-white text-xs font-medium bg-black/50 backdrop-blur-sm rounded-full px-3 py-1 flex items-center gap-1">
+                      <Eye className="size-3" />
+                      View
+                    </span>
+                  </div>
+                  {item.isNew && (
+                    <span className="absolute top-2 left-2 text-[10px] font-semibold uppercase tracking-wider bg-amber-500 text-white px-2 py-0.5 rounded-full">
+                      New
+                    </span>
+                  )}
+                </div>
+                <div className="p-3">
+                  <p className="text-[10px] font-medium text-neutral-400 uppercase tracking-wide truncate">{item.categoryName}</p>
+                  <p className="text-xs font-medium text-neutral-800 mt-0.5 line-clamp-2 leading-snug min-h-[2rem]">{item.name}</p>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span className="text-sm font-bold text-neutral-900">{settings.currencySymbol}{item.price.toFixed(2)}</span>
+                    {hasDiscount && (
+                      <span className="text-[11px] text-neutral-400 line-through">{settings.currencySymbol}{item.comparePrice!.toFixed(2)}</span>
+                    )}
+                  </div>
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
 // ==================== PROMO BANNERS ====================
 function PromoBanners() {
   const { setStoreView, setSelectedCategoryId } = useNavigationStore();
@@ -473,6 +577,7 @@ export default function MegaHomePage() {
           subtitle="Highest rated products across all categories"
           apiParams="sortBy=rating&limit=12"
         />
+        <RecentlyViewedSection />
       </div>
       <Testimonials />
       <NewsletterSection />

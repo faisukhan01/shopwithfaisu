@@ -36,6 +36,8 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
     ? Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100)
     : 0;
 
+  const lowStock = product.stock <= 3 && product.stock > 0;
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     addItem({
@@ -95,21 +97,29 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
         onClick={handleClick}
         className="group cursor-pointer"
       >
-        <div className="relative rounded-xl overflow-hidden bg-neutral-50 border border-neutral-100 transition-all duration-300 hover:shadow-lg hover:shadow-neutral-200/50 hover:border-neutral-200">
+        {/* 1a: Card hover — translateY(-4px) + shadow-lg */}
+        <div className="relative rounded-xl overflow-hidden bg-neutral-50 border border-neutral-100 transition-all duration-300 hover:shadow-lg hover:shadow-neutral-200/50 hover:border-neutral-200 hover:-translate-y-1">
           {/* Image container */}
           <div className="relative aspect-square overflow-hidden">
+            {/* 1b: Image zoom 1.08x on hover */}
             <img
               src={mainImage}
               alt={product.name}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.08]"
             />
 
             {/* Badges - top left */}
             <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+              {/* 1e: "New" badge with subtle pulse animation */}
               {product.isNew && (
-                <Badge className="bg-neutral-900 text-white border-0 text-[10px] font-semibold px-2 py-0.5 rounded-md">
-                  New
-                </Badge>
+                <motion.div
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <Badge className="bg-neutral-900 text-white border-0 text-[10px] font-semibold px-2 py-0.5 rounded-md">
+                    New
+                  </Badge>
+                </motion.div>
               )}
               {discount > 0 && (
                 <Badge className="bg-rose-500 text-white border-0 text-[10px] font-semibold px-2 py-0.5 rounded-md">
@@ -155,12 +165,15 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
                 <ShoppingBag className="size-4 mr-2" />
                 Add to Cart
               </Button>
-              <Button
+              {/* 1c: Refined Quick View — smaller pill with backdrop blur */}
+              <motion.button
+                whileTap={{ scale: 0.92 }}
                 onClick={handleQuickView}
-                className="size-10 bg-white/95 backdrop-blur-sm hover:bg-white text-neutral-900 rounded-lg shadow-md border border-neutral-200/50 flex-shrink-0"
+                className="size-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md text-neutral-700 hover:text-neutral-900 hover:bg-white/95 shadow-md border border-neutral-200/50 transition-colors flex-shrink-0"
+                aria-label="Quick view"
               >
                 <Eye className="size-4" />
-              </Button>
+              </motion.button>
             </div>
           </div>
 
@@ -181,17 +194,48 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
 
             {renderStars(product.rating)}
 
-            {/* Price */}
+            {/* 1d: Price with fade-in when discount is present */}
             <div className="flex items-center gap-2 mt-2">
-              <span className="text-base font-semibold text-neutral-900">
-                {settings.currencySymbol}{product.price.toFixed(2)}
-              </span>
-              {product.comparePrice && (
-                <span className="text-sm text-neutral-400 line-through">
-                  {settings.currencySymbol}{product.comparePrice.toFixed(2)}
+              {discount > 0 ? (
+                <motion.span
+                  className="text-base font-semibold text-neutral-900"
+                  initial={{ opacity: 0, y: 4 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.15 + index * 0.04 }}
+                >
+                  {settings.currencySymbol}{product.price.toFixed(2)}
+                </motion.span>
+              ) : (
+                <span className="text-base font-semibold text-neutral-900">
+                  {settings.currencySymbol}{product.price.toFixed(2)}
                 </span>
               )}
+              {product.comparePrice && (
+                <motion.span
+                  className="text-sm text-neutral-400 line-through"
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.25 + index * 0.04 }}
+                >
+                  {settings.currencySymbol}{product.comparePrice.toFixed(2)}
+                </motion.span>
+              )}
             </div>
+
+            {/* 1f: Low stock indicator */}
+            {lowStock && (
+              <motion.p
+                className="text-[11px] font-medium text-amber-600 mt-1.5"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: 0.3 + index * 0.04 }}
+              >
+                Only {product.stock} left
+              </motion.p>
+            )}
 
             {/* Mobile Add to Cart - always visible */}
             <div className="flex gap-2 mt-3 sm:hidden">

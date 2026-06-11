@@ -217,6 +217,50 @@ export const useWishlistStore = create<WishlistStore>((set, get) => ({
   isWishlisted: (productId) => get().items.includes(productId),
 }));
 
+// Recently Viewed Store
+export interface RecentlyViewedItem {
+  id: string;
+  name: string;
+  price: number;
+  comparePrice: number | null;
+  images: string;
+  slug: string;
+  categoryName: string;
+  rating: number;
+  stock: number;
+  isNew: boolean;
+}
+
+interface RecentlyViewedStore {
+  items: RecentlyViewedItem[];
+  addItem: (item: RecentlyViewedItem) => void;
+  clearAll: () => void;
+}
+
+const STORAGE_KEY_RECENTLY_VIEWED = 'faisu_recently_viewed';
+
+export const useRecentlyViewedStore = create<RecentlyViewedStore>((set, get) => ({
+  items: typeof window !== 'undefined'
+    ? JSON.parse(localStorage.getItem(STORAGE_KEY_RECENTLY_VIEWED) || '[]')
+    : [],
+  addItem: (item) => {
+    const { items } = get();
+    // Remove existing entry for same product (to move it to front)
+    const filtered = items.filter((i) => i.id !== item.id);
+    const newItems = [item, ...filtered].slice(0, 8);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY_RECENTLY_VIEWED, JSON.stringify(newItems));
+    }
+    set({ items: newItems });
+  },
+  clearAll: () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY_RECENTLY_VIEWED);
+    }
+    set({ items: [] });
+  },
+}));
+
 // Auth Store
 interface AuthStore {
   user: { id: string; email: string; name: string; role: string; avatar?: string | null } | null;
