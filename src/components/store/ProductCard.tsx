@@ -97,8 +97,8 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
         onClick={handleClick}
         className="group cursor-pointer"
       >
-        {/* 1a: Card hover — translateY(-4px) + shadow-lg */}
-        <div className="relative rounded-xl overflow-hidden bg-neutral-50 border border-neutral-100 transition-all duration-300 hover:shadow-lg hover:shadow-neutral-200/50 hover:border-neutral-200 hover:-translate-y-1">
+        {/* 1a: Card hover — scale-up + shadow + translate */}
+        <div className="relative rounded-xl overflow-hidden bg-neutral-50 border border-neutral-100 transition-all duration-300 ease-out hover:shadow-lg hover:shadow-neutral-900/8 hover:border-neutral-200 hover:-translate-y-1 hover:scale-[1.02]">
           {/* Image container */}
           <div className="relative aspect-square overflow-hidden">
             {/* 1b: Image zoom 1.08x on hover */}
@@ -107,6 +107,9 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
               alt={product.name}
               className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.08]"
             />
+
+            {/* Gradient overlay on hover */}
+            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
             {/* Badges - top left */}
             <div className="absolute top-3 left-3 flex flex-col gap-1.5">
@@ -156,8 +159,8 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
               </motion.button>
             </div>
 
-            {/* Hover actions - bottom */}
-            <div className="absolute bottom-3 left-3 right-3 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hidden sm:flex gap-2">
+            {/* Hover actions - slide up from bottom */}
+            <div className="absolute bottom-3 left-3 right-3 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 ease-out hidden sm:flex gap-2">
               <Button
                 onClick={handleAddToCart}
                 className="flex-1 h-10 bg-white/95 backdrop-blur-sm hover:bg-white text-neutral-900 font-medium text-sm rounded-lg shadow-md border border-neutral-200/50"

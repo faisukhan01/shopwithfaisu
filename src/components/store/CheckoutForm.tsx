@@ -214,11 +214,14 @@ export default function CheckoutForm() {
           <div className="lg:col-span-3 space-y-8">
             {/* Contact */}
             <section>
-              <h2 className="text-sm font-semibold text-neutral-900 mb-4 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs">
+              <h2 className="text-sm font-semibold text-neutral-900 mb-4 flex items-center gap-3">
+                <span className="w-7 h-7 rounded-full bg-gradient-to-br from-neutral-900 to-neutral-700 text-white flex items-center justify-center text-xs font-bold shadow-sm">
                   1
                 </span>
-                Contact Information
+                <div className="flex flex-col">
+                  <span className="leading-none">Contact Information</span>
+                  <span className="text-[11px] font-normal text-neutral-400 mt-0.5">Where should we send your order confirmation?</span>
+                </div>
               </h2>
               <div className="space-y-4">
                 <div>
@@ -243,11 +246,17 @@ export default function CheckoutForm() {
 
             {/* Shipping */}
             <section>
-              <h2 className="text-sm font-semibold text-neutral-900 mb-4 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs">
-                  2
-                </span>
-                Shipping Address
+              <h2 className="text-sm font-semibold text-neutral-900 mb-4 flex items-center gap-3">
+                <div className="flex flex-col items-center gap-0.5">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-neutral-900 to-neutral-700 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                    2
+                  </div>
+                  <div className="w-px h-4 bg-neutral-200" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="leading-none">Shipping Address</span>
+                  <span className="text-[11px] font-normal text-neutral-400 mt-0.5">Where should we deliver your order?</span>
+                </div>
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -369,11 +378,17 @@ export default function CheckoutForm() {
 
             {/* Coupon Code */}
             <section>
-              <h2 className="text-sm font-semibold text-neutral-900 mb-4 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs">
-                  3
-                </span>
-                Coupon Code
+              <h2 className="text-sm font-semibold text-neutral-900 mb-4 flex items-center gap-3">
+                <div className="flex flex-col items-center gap-0.5">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-neutral-900 to-neutral-700 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                    3
+                  </div>
+                  <div className="w-px h-4 bg-neutral-200" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="leading-none">Coupon Code</span>
+                  <span className="text-[11px] font-normal text-neutral-400 mt-0.5">Have a discount code? Apply it here</span>
+                </div>
               </h2>
               <div className="space-y-3">
                 <div className="flex gap-3">
@@ -437,11 +452,17 @@ export default function CheckoutForm() {
 
             {/* Payment */}
             <section>
-              <h2 className="text-sm font-semibold text-neutral-900 mb-4 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs">
-                  4
-                </span>
-                Payment
+              <h2 className="text-sm font-semibold text-neutral-900 mb-4 flex items-center gap-3">
+                <div className="flex flex-col items-center gap-0.5">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-neutral-900 to-neutral-700 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                    4
+                  </div>
+                  <div className="w-px h-4 bg-neutral-200" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="leading-none">Payment Details</span>
+                  <span className="text-[11px] font-normal text-neutral-400 mt-0.5">All transactions are secure and encrypted</span>
+                </div>
               </h2>
               <div className="bg-neutral-50 rounded-xl p-5 border border-neutral-100 space-y-4">
                 <div className="flex items-center gap-2 text-sm text-neutral-600">

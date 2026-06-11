@@ -12,6 +12,7 @@ export async function GET() {
       recentOrders,
       topProducts,
       ordersByStatus,
+      categoryDistribution,
     ] = await Promise.all([
       db.product.count({ where: { isActive: true } }),
       db.order.count(),
@@ -42,6 +43,11 @@ export async function GET() {
         by: ['status'],
         _count: { status: true },
       }),
+      db.category.findMany({
+        where: { isActive: true },
+        orderBy: { sortOrder: 'asc' },
+        include: { _count: { select: { products: { where: { isActive: true } } } } },
+      }),
     ])
 
     const statusCounts: Record<string, number> = {}
@@ -62,6 +68,11 @@ export async function GET() {
       recentOrders,
       topProducts: formattedTopProducts,
       ordersByStatus: statusCounts,
+      categoryDistribution: categoryDistribution.map(c => ({
+        name: c.name,
+        slug: c.slug,
+        count: c._count.products,
+      })),
     })
   } catch (error) {
     console.error('Error fetching admin dashboard:', error)

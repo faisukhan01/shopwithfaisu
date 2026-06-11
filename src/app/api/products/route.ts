@@ -16,6 +16,12 @@ export async function GET(request: NextRequest) {
 
     if (featured) where.isFeatured = true;
     if (categoryId) where.categoryId = categoryId;
+
+    // Price range filters
+    const minPrice = searchParams.get('minPrice');
+    const maxPrice = searchParams.get('maxPrice');
+    if (minPrice) where.price = { ...(where.price as Record<string, unknown>), gte: parseFloat(minPrice) };
+    if (maxPrice) where.price = { ...(where.price as Record<string, unknown>), lte: parseFloat(maxPrice) };
     if (search) {
       where.OR = [
         { name: { contains: search } },

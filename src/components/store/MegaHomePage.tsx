@@ -119,7 +119,7 @@ function HeroSection() {
               transition={{ duration: 0.8, delay: 0.8 }}
               className="mt-10 sm:mt-14 flex items-center gap-8 sm:gap-12"
             >
-              {[{ n: '50K+', l: 'Happy Customers' }, { n: '500+', l: 'Products' }, { n: '4.8', l: 'Avg. Rating' }].map(({ n, l }) => (
+              {[{ n: '100K+', l: 'Happy Customers' }, { n: '1,000+', l: 'Products' }, { n: '20+', l: 'Categories' }, { n: '4.8', l: 'Avg. Rating' }].map(({ n, l }) => (
                 <div key={l}>
                   <p className="text-2xl sm:text-3xl font-bold text-white">{n}</p>
                   <p className="text-xs text-neutral-400 mt-0.5">{l}</p>
@@ -155,7 +155,7 @@ function CategorySection() {
           <div>
             <p className="text-xs font-semibold text-amber-600 tracking-widest uppercase mb-2">Browse</p>
             <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900 tracking-tight">Shop by Category</h2>
-            <p className="text-sm text-neutral-500 mt-1.5 max-w-md">From tech essentials to artisan pantry items — find everything you need, beautifully curated.</p>
+            <p className="text-sm text-neutral-500 mt-1.5 max-w-lg">From electronics and fashion to garden tools and pet supplies — 20 curated categories, 125+ premium products, one beautiful destination.</p>
           </div>
           <button
             onClick={() => { setSelectedCategoryId(null); setStoreView('shop'); }}
@@ -165,13 +165,13 @@ function CategorySection() {
           </button>
         </div>
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+            {Array.from({ length: 10 }).map((_, i) => (
               <div key={i} className="aspect-square sm:aspect-[3/4] rounded-xl bg-neutral-100 animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
             {categories.map((cat, i) => (
               <motion.button
                 key={cat.id}

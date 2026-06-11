@@ -34,6 +34,9 @@ export default function ProductGrid({ featured = false }: { featured?: boolean }
   const [hasMore, setHasMore] = useState(true);
   const [sortBy, setSortBy] = useState('newest');
   const [localSearch, setLocalSearch] = useState(searchQuery);
+  const [priceMin, setPriceMin] = useState('');
+  const [priceMax, setPriceMax] = useState('');
+  const priceDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [displayedCount, setDisplayedCount] = useState(0);
   const prevTotalCount = useRef(totalCount);
@@ -50,6 +53,8 @@ export default function ProductGrid({ featured = false }: { featured?: boolean }
         if (selectedCategoryId) params.set('categoryId', selectedCategoryId);
         if (searchQuery) params.set('search', searchQuery);
         if (sortBy) params.set('sortBy', sortBy);
+        if (priceMin) params.set('minPrice', priceMin);
+        if (priceMax) params.set('maxPrice', priceMax);
         params.set('page', String(pageNum));
         params.set('limit', String(pageSize));
 
@@ -72,7 +77,7 @@ export default function ProductGrid({ featured = false }: { featured?: boolean }
         setLoading(false);
       }
     },
-    [featured, selectedCategoryId, searchQuery, sortBy, totalCount]
+    [featured, selectedCategoryId, searchQuery, sortBy, totalCount, priceMin, priceMax]
   );
 
   useEffect(() => {
@@ -103,6 +108,24 @@ export default function ProductGrid({ featured = false }: { featured?: boolean }
 
   const clearCategory = () => {
     setSelectedCategoryId(null);
+  };
+
+  const clearPriceFilter = () => {
+    setPriceMin('');
+    setPriceMax('');
+  };
+
+  const handlePriceChange = (field: 'min' | 'max', value: string) => {
+    if (field === 'min') {
+      setPriceMin(value);
+    } else {
+      setPriceMax(value);
+    }
+    if (priceDebounceRef.current) clearTimeout(priceDebounceRef.current);
+    priceDebounceRef.current = setTimeout(() => {
+      setPage(1);
+      fetchProducts(1);
+    }, 500);
   };
 
   const clearSearch = () => {
@@ -233,6 +256,40 @@ export default function ProductGrid({ featured = false }: { featured?: boolean }
                     <SelectItem value="popular">Most Popular</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Price Range Filter */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={priceMin}
+                    onChange={(e) => handlePriceChange('min', e.target.value)}
+                    placeholder="Min"
+                    className="w-20 h-10 text-sm border border-neutral-200 rounded-lg px-3 bg-transparent placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-900 focus:border-neutral-900 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <span className="text-neutral-300 text-sm select-none">–</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={priceMax}
+                    onChange={(e) => handlePriceChange('max', e.target.value)}
+                    placeholder="Max"
+                    className="w-20 h-10 text-sm border border-neutral-200 rounded-lg px-3 bg-transparent placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-900 focus:border-neutral-900 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+                {(priceMin || priceMax) && (
+                  <button
+                    onClick={clearPriceFilter}
+                    className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
+                    aria-label="Clear price filter"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
               </div>
             </div>
 

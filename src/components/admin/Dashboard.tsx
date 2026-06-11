@@ -40,6 +40,7 @@ interface DashboardData {
     revenue: number;
   }[];
   ordersByStatus: { status: string; count: number }[];
+  categoryDistribution: { name: string; slug: string; count: number }[];
 }
 
 const statusColors: Record<string, string> = {
@@ -163,6 +164,40 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Category Distribution Chart */}
+      {!loading && data?.categoryDistribution && data.categoryDistribution.length > 0 && (
+        <Card className="border-zinc-200/60 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold">Category Distribution</CardTitle>
+              <span className="text-xs text-zinc-400">{data.categoryDistribution.length} categories</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {data.categoryDistribution.map((cat) => {
+                const maxCount = Math.max(...data.categoryDistribution.map(c => c.count));
+                const pct = maxCount > 0 ? Math.round((cat.count / maxCount) * 100) : 0;
+                return (
+                  <div key={cat.slug} className="flex-1 min-w-[100px]">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11px] font-medium text-zinc-600 truncate max-w-[80px]">{cat.name}</span>
+                      <span className="text-[11px] text-zinc-400 ml-1">{cat.count}</span>
+                    </div>
+                    <div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-amber-500 transition-all duration-700"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Orders */}
         <Card className="lg:col-span-2 border-zinc-200/60 shadow-sm">
@@ -282,7 +317,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                     );
-                  })}
+                  }))}
                 </div>
               ) : (
                 <p className="text-sm text-zinc-400 text-center py-4">No data</p>
