@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String?
+  password       String?
+  role           String    @default("customer")
+  phone          String?
+  address        String?
+  avatar         String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  orders         Order[]
+  cartItems      CartItem[]
+  reviews        Review[]
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?
+  image       String?
+  parentId    String?
+  sortOrder   Int        @default(0)
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  products    Product[]
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+}
+
+model Product {
+  id           String      @id @default(cuid())
+  name         String
+  slug         String      @unique
+  description  String?
+  shortDesc    String?
+  price        Float
+  comparePrice Float?
+  costPrice    Float?
+  images       String      @default("[]")
+  categoryId   String
+  stock        Int         @default(0)
+  sku          String?
+  weight       Float?
+  dimensions   String?
+  isFeatured   Boolean     @default(false)
+  isNew        Boolean     @default(false)
+  isActive     Boolean     @default(true)
+  attributes   String?
+  rating       Float       @default(0)
+  reviewCount  Int         @default(0)
+  soldCount    Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  category     Category    @relation(fields: [categoryId], references: [id])
+  orderItems   OrderItem[]
+  cartItems    CartItem[]
+  reviews      Review[]
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String?
+  sessionId String?
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User?    @relation(fields: [userId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique
+  userId          String?
+  sessionId       String?
+  status          String      @default("pending")
+  total           Float
+  subtotal        Float
+  shipping        Float       @default(0)
+  tax             Float       @default(0)
+  discount        Float       @default(0)
+  couponCode      String?
+  shippingAddress String?
+  billingAddress  String?
+  paymentMethod   String?
+  paymentStatus   String      @default("pending")
+  notes           String?
+  trackingNumber  String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  user            User?       @relation(fields: [userId], references: [id])
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id           String   @id @default(cuid())
+  orderId      String
+  productId    String
+  productName  String
+  productImage String?
+  price        Float
+  quantity     Int
+  createdAt    DateTime @default(now())
+  order        Order    @relation(fields: [orderId], references: [id])
+  product      Product  @relation(fields: [productId], references: [id])
+}
+
+model StoreSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  type      String   @default("text")
+  group     String   @default("general")
+  label     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  productId  String
+  userId     String?
+  userName   String?
+  rating     Int
+  title      String?
+  comment    String
+  isApproved Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  product    Product  @relation(fields: [productId], references: [id])
+  user       User?    @relation(fields: [userId], references: [id])
+}
+
+model Coupon {
+  id         String    @id @default(cuid())
+  code       String    @unique
+  type       String    @default("percentage")
+  value      Float
+  minOrder   Float?
+  maxUses    Int?
+  usedCount  Int       @default(0)
+  expiresAt  DateTime?
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Page {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  content     String?
+  metaTitle   String?
+  metaDesc    String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

@@ -1,0 +1,179 @@
+'use client';
+
+import { useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useNavigationStore, useCartStore, useSettingsStore, useAuthStore } from '@/lib/stores';
+import Header from '@/components/store/Header';
+import HeroSection from '@/components/store/HeroSection';
+import CategoryGrid from '@/components/store/CategoryGrid';
+import ProductGrid from '@/components/store/ProductGrid';
+import ProductDetail from '@/components/store/ProductDetail';
+import CartDrawer from '@/components/store/CartDrawer';
+import CheckoutForm from '@/components/store/CheckoutForm';
+import CheckoutSuccess from '@/components/store/CheckoutSuccess';
+import OrderHistory from '@/components/store/OrderHistory';
+import Footer from '@/components/store/Footer';
+import AdminLayout from '@/components/admin/AdminLayout';
+import Dashboard from '@/components/admin/Dashboard';
+import ProductManager from '@/components/admin/ProductManager';
+import ProductForm from '@/components/admin/ProductForm';
+import CategoryManager from '@/components/admin/CategoryManager';
+import OrderManager from '@/components/admin/OrderManager';
+import OrderDetail from '@/components/admin/OrderDetail';
+import CustomerManager from '@/components/admin/CustomerManager';
+import CouponManager from '@/components/admin/CouponManager';
+import ReviewManager from '@/components/admin/ReviewManager';
+import SettingsManager from '@/components/admin/SettingsManager';
+
+export default function Home() {
+  const { storeView, isAdminMode, adminView } = useNavigationStore();
+  const { settings, loadSettings } = useSettingsStore();
+  const { user, setUser, isAuthenticated } = useAuthStore();
+  const { setCartOpen } = useCartStore();
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && typeof data === 'object') {
+          loadSettings(data);
+        }
+      })
+      .catch(() => {});
+  }, [loadSettings]);
+
+  useEffect(() => {
+    if (isAuthenticated && user) return;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    if (token) {
+      try {
+        const data = JSON.parse(atob(token));
+        if (data.userId && data.email) {
+          setUser({
+            id: data.userId,
+            email: data.email,
+            name: data.name || data.email.split('@')[0],
+            role: data.role || 'customer',
+            avatar: data.avatar || null,
+          });
+        }
+      } catch {
+        localStorage.removeItem('authToken');
+      }
+    }
+  }, [isAuthenticated, user, setUser]);
+
+  useEffect(() => {
+    if (storeView === 'cart') {
+      setCartOpen(true);
+    }
+  }, [storeView, setCartOpen]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [storeView, adminView]);
+
+  // Admin panel
+  if (isAdminMode) {
+    const renderAdminView = () => {
+      switch (adminView) {
+        case 'dashboard': return <Dashboard />;
+        case 'products': return <ProductManager />;
+        case 'product-form': return <ProductForm />;
+        case 'categories': return <CategoryManager />;
+        case 'orders': return <OrderManager />;
+        case 'order-detail': return <OrderDetail />;
+        case 'customers': return <CustomerManager />;
+        case 'coupons': return <CouponManager />;
+        case 'reviews': return <ReviewManager />;
+        case 'settings': return <SettingsManager />;
+        default: return <Dashboard />;
+      }
+    };
+
+    return <AdminLayout>{renderAdminView()}</AdminLayout>;
+  }
+
+  // Store front
+  const pageVariants = {
+    initial: { opacity: 0, y: 8 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -8 },
+  };
+
+  const renderView = () => {
+    switch (storeView) {
+      case 'home':
+        return (
+          <>
+            <HeroSection />
+            <CategoryGrid />
+            <ProductGrid featured />
+            <section className="py-16 sm:py-24 bg-neutral-50">
+              <div className="max-w-2xl mx-auto px-4 text-center">
+                <h2 className="text-2xl sm:text-3xl font-semibold text-neutral-900 tracking-tight">
+                  Stay in the loop
+                </h2>
+                <p className="text-neutral-500 mt-3 text-sm sm:text-base leading-relaxed">
+                  Get exclusive access to new arrivals, special offers, and style inspiration delivered to your inbox.
+                </p>
+                <div className="mt-6 flex gap-2 max-w-sm mx-auto">
+                  <input
+                    type="email"
+                    placeholder="Your email address"
+                    className="flex-1 h-11 px-4 text-sm border border-neutral-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                  />
+                  <button className="h-11 px-6 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 transition-colors">
+                    Subscribe
+                  </button>
+                </div>
+              </div>
+            </section>
+          </>
+        );
+      case 'shop':
+        return <ProductGrid />;
+      case 'product':
+        return <ProductDetail />;
+      case 'cart':
+        setCartOpen(true);
+        return <ProductGrid />;
+      case 'checkout':
+        return <CheckoutForm />;
+      case 'checkout-success':
+        return <CheckoutSuccess />;
+      case 'orders':
+        return <OrderHistory />;
+      default:
+        return (
+          <>
+            <HeroSection />
+            <CategoryGrid />
+            <ProductGrid featured />
+          </>
+        );
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-white">
+      <Header />
+      <CartDrawer />
+      <main className="flex-1">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={storeView}
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+          >
+            {renderView()}
+          </motion.div>
+        </AnimatePresence>
+      </main>
+      <Footer />
+    </div>
+  );
+}
