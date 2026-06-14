@@ -246,3 +246,25 @@ Stage Summary:
 - Product images: admin can upload unlimited images via visual grid, product detail shows clickable thumbnail gallery
 - All verified via agent-browser + VLM screenshot analysis
 - Zero lint errors
+
+---
+Task ID: 9
+Agent: Main Developer
+Task: Replace Z logo with 3D ecommerce logo, redesign AuthModal and CartDrawer
+
+Work Log:
+- Investigated user report of "Z logo" appearing everywhere: found logo.png was JPEG data (likely Z.ai platform artifact), logo.svg was old gold outline bag
+- Generated new premium 3D ecommerce logo via AI image generation: matte black shopping bag with gold metallic grommets, no text, no Z letter — verified via VLM (confirmed no text/letters/Z, rated premium quality)
+- Created matching SVG logo with dark charcoal bag body gradient, gold grommet accents, subtle shine, and soft shadow — matches the 3D PNG theme
+- Updated logo.png (3D generated) for favicon, logo.svg (premium vector) for navbar/footer/modal
+- Updated AuthModal.tsx to use `settings.storeLogo` from Zustand store instead of hardcoded `/logo.svg`
+- Verified via agent-browser + VLM: navbar shows shopping bag (not Z), footer shows shopping bag (not Z), sign-in modal shows store logo (not Z)
+- Redesigned AuthModal: dark charcoal (#1a1a1a) background, warm gold (#d4a053) gradient CTA button, amber glow border, gold accent email/user icons, frosted glass backdrop, smooth animations — rated 8/10 premium by VLM
+- Redesigned CartDrawer: amber gradient header icon, gold gradient checkout button with shadow, improved empty state with gift icon, refined shipping progress bar with gradient, better quantity controls with hover states, rose-colored remove button on hover, larger total typography, subtle footer background gradient
+- All changes compile cleanly with zero lint errors
+
+Stage Summary:
+- **Logo**: New 3D matte black shopping bag with gold accents (PNG for favicon, matching premium SVG for components)
+- **Z logo completely removed** from navbar, footer, and auth modal — verified via agent-browser screenshots + VLM analysis
+- **AuthModal**: Dark premium theme with gold accents, icon-enhanced inputs, smooth transitions (Sign In / Sign Up both tested)
+- **CartDrawer**: Gold gradient checkout button, improved empty state, refined product cards, premium shipping banner

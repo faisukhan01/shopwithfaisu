@@ -1,11 +1,51 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 250" fill="none">
-  <!-- Handle -->
-  <path d="M62 95 Q62 42 100 42 Q138 42 138 95" stroke="#c9952c" stroke-width="10" stroke-linecap="round" fill="none"/>
-  <!-- Handle dots -->
-  <circle cx="62" cy="95" r="5" fill="#c9952c"/>
-  <circle cx="138" cy="95" r="5" fill="#c9952c"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" fill="none">
+  <defs>
+    <linearGradient id="bagBody" x1="60" y1="90" x2="140" y2="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2a2a2a"/>
+      <stop offset="100%" stop-color="#1a1a1a"/>
+    </linearGradient>
+    <linearGradient id="bagShine" x1="70" y1="95" x2="90" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="handleGrad" x1="70" y1="40" x2="130" y2="90" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3a3a3a"/>
+      <stop offset="100%" stop-color="#222222"/>
+    </linearGradient>
+    <linearGradient id="goldAccent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d4a053"/>
+      <stop offset="50%" stop-color="#e8b960"/>
+      <stop offset="100%" stop-color="#c9952c"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-5%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.15"/>
+    </filter>
+    <filter id="innerGlow">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Soft shadow beneath bag -->
+  <ellipse cx="100" cy="215" rx="55" ry="6" fill="#000000" opacity="0.08"/>
+
+  <!-- Handle left -->
+  <path d="M68 100 Q68 48 100 48 Q132 48 132 100" stroke="url(#handleGrad)" stroke-width="9" stroke-linecap="round" fill="none" filter="url(#innerGlow)"/>
+
   <!-- Bag body -->
-  <rect x="42" y="90" width="116" height="130" rx="12" stroke="#c9952c" stroke-width="10" fill="none"/>
-  <!-- Subtle fold curve -->
-  <path d="M54 140 Q100 124 146 140" stroke="#c9952c" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.5"/>
+  <rect x="48" y="95" width="104" height="115" rx="10" fill="url(#bagBody)" filter="url(#shadow)"/>
+
+  <!-- Subtle shine on bag -->
+  <rect x="48" y="95" width="104" height="115" rx="10" fill="url(#bagShine)"/>
+
+  <!-- Gold grommet left -->
+  <circle cx="68" cy="100" r="5.5" fill="url(#goldAccent)" stroke="#b8862a" stroke-width="0.5"/>
+  <circle cx="68" cy="100" r="2.5" fill="#1a1a1a"/>
+
+  <!-- Gold grommet right -->
+  <circle cx="132" cy="100" r="5.5" fill="url(#goldAccent)" stroke="#b8862a" stroke-width="0.5"/>
+  <circle cx="132" cy="100" r="2.5" fill="#1a1a1a"/>
+
+  <!-- Subtle fold lines -->
+  <path d="M60 145 Q100 133 140 145" stroke="#ffffff" stroke-width="1" stroke-linecap="round" fill="none" opacity="0.05"/>
+  <path d="M60 160 Q100 152 140 160" stroke="#ffffff" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.03"/>
 </svg>
