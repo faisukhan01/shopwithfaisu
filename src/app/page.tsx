@@ -9,8 +9,7 @@ import CheckoutForm from '@/components/store/CheckoutForm';
 import CheckoutSuccess from '@/components/store/CheckoutSuccess';
 import OrderHistory from '@/components/store/OrderHistory';
 import WishlistView from '@/components/store/WishlistView';
-import SignInPage from '@/components/store/SignInPage';
-import SignUpPage from '@/components/store/SignUpPage';
+import AuthModal from '@/components/store/AuthModal';
 import Footer from '@/components/store/Footer';
 import MegaHomePage from '@/components/store/MegaHomePage';
 import ProductGrid from '@/components/store/ProductGrid';
@@ -77,13 +76,16 @@ export default function Home() {
   }
 
   // Store front
+  const isAuthModal = storeView === 'login' || storeView === 'register';
+
   const pageVariants = {
     initial: { opacity: 0, y: 8 },
     animate: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: -8 },
   };
 
-  const renderView = () => {
+  // Auth modal renders on top of home; other views replace content
+  const contentView = isAuthModal ? <MegaHomePage /> : (() => {
     switch (storeView) {
       case 'home': return <MegaHomePage />;
       case 'shop': return <ProductGrid />;
@@ -93,33 +95,32 @@ export default function Home() {
       case 'checkout-success': return <CheckoutSuccess />;
       case 'orders': return <OrderHistory />;
       case 'wishlist': return <WishlistView />;
-      case 'login': return <SignInPage />;
-      case 'register': return <SignUpPage />;
       default: return <MegaHomePage />;
     }
-  };
-
-  const isAuthPage = storeView === 'login' || storeView === 'register';
+  })();
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      {!isAuthPage && <Header />}
-      {!isAuthPage && <CartDrawer />}
+      <Header />
+      <CartDrawer />
       <main className="flex-1">
         <AnimatePresence mode="wait">
           <motion.div
             key={storeView}
-            variants={isAuthPage ? {} : pageVariants}
+            variants={isAuthModal ? { initial: { opacity: 1 }, animate: { opacity: 1 }, exit: { opacity: 1 } } : pageVariants}
             initial="initial"
             animate="animate"
             exit="exit"
             transition={{ duration: 0.3, ease: 'easeInOut' }}
           >
-            {renderView()}
+            {contentView}
           </motion.div>
         </AnimatePresence>
       </main>
-      {!isAuthPage && <Footer />}
+      <Footer />
+
+      {/* Auth modal overlay */}
+      <AuthModal />
     </div>
   );
 }
