@@ -358,7 +358,7 @@ export default function Dashboard() {
                         <p className="text-xs text-zinc-500">{product.soldCount} sold</p>
                       </div>
                       <p className="text-sm font-medium text-zinc-900">
-                        ${product.revenue.toFixed(2)}
+                        ${(product.revenue ?? (product.price * product.soldCount) ?? 0).toFixed(2)}
                       </p>
                     </div>
                   ))}

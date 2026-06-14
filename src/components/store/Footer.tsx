@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Send, Instagram, Twitter, Facebook, Youtube, ShieldCheck, Truck, RotateCcw, CreditCard, Lock, MapPin, Phone, Mail } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -8,12 +8,44 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useNavigationStore, useSettingsStore } from '@/lib/stores';
 
+interface FooterColumnLink {
+  label: string;
+  view?: string;
+  url?: string;
+}
+
+interface FooterColumnData {
+  title: string;
+  links: FooterColumnLink[];
+}
+
+interface FooterConfig {
+  showCategories?: boolean;
+  showNewsletter?: boolean;
+  columns?: FooterColumnData[];
+}
+
 export default function Footer() {
   const { setStoreView, setSelectedCategoryId } = useNavigationStore();
   const { settings } = useSettingsStore();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
   const [categories, setCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
+
+  // Parse footer config from settings
+  const footerConfig: FooterConfig = useMemo(() => {
+    try {
+      if (settings.footerColumns) {
+        const parsed = JSON.parse(settings.footerColumns);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch { /* use defaults */ }
+    return {};
+  }, [settings.footerColumns]);
+
+  const showCategories = footerConfig.showCategories !== false;
+  const showNewsletter = footerConfig.showNewsletter !== false;
+  const customColumns = footerConfig.columns || [];
 
   useEffect(() => {
     fetch('/api/categories').then(r => r.json()).then(d => { if (Array.isArray(d)) setCategories(d); }).catch(() => {});
@@ -30,6 +62,44 @@ export default function Footer() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleLinkClick = (link: FooterColumnLink) => {
+    if (link.view) {
+      setStoreView(link.view as 'home' | 'shop' | 'wishlist' | 'orders' | 'login' | 'register');
+      if (link.view === 'shop') setSelectedCategoryId(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (link.url) {
+      window.open(link.url, '_blank');
+    }
+  };
+
+  // Don't render if footer is disabled
+  if (settings.footerEnabled === false) return null;
+
+  // Default columns when no custom columns are set
+  const defaultColumns: FooterColumnData[] = [
+    {
+      title: 'Shop',
+      links: [
+        { label: 'All Products', view: 'shop' },
+        { label: 'New Arrivals', view: 'shop' },
+        { label: 'Best Sellers', view: 'shop' },
+        { label: 'Sale', view: 'shop' },
+      ],
+    },
+    {
+      title: 'Help',
+      links: [
+        { label: 'Contact Us', url: `mailto:${settings.contactEmail}` },
+        { label: 'Order Tracking', view: 'orders' },
+        { label: 'Shipping & Returns', url: '#' },
+        { label: 'FAQ', url: '#' },
+        { label: 'Size Guide', url: '#' },
+      ],
+    },
+  ];
+
+  const displayColumns = customColumns.length > 0 ? customColumns : defaultColumns;
+
   return (
     <footer className="bg-neutral-950 text-neutral-300 mt-auto">
       {/* Main footer content */}
@@ -37,9 +107,16 @@ export default function Footer() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-12 gap-8 lg:gap-10">
           {/* Brand - spans 4 cols on large */}
           <div className="col-span-2 sm:col-span-3 lg:col-span-4">
-            <h3 className="text-xl font-bold text-white tracking-tight">
-              {settings.storeName}
-            </h3>
+            <div className="flex items-center gap-3">
+              <img
+                src={settings.storeLogo || '/logo.svg'}
+                alt="Logo"
+                className="h-9 w-9"
+              />
+              <h3 className="text-xl font-bold text-white tracking-tight">
+                {settings.storeName}
+              </h3>
+            </div>
             <p className="text-sm text-neutral-500 mt-3 leading-relaxed max-w-xs">
               {settings.footerText}
             </p>
@@ -58,108 +135,78 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Shop - spans 2 cols */}
-          <div className="lg:col-span-2">
-            <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-4">Shop</h4>
-            <ul className="space-y-2.5">
-              <li>
-                <button onClick={() => { setSelectedCategoryId(null); setStoreView('shop'); window.scrollTo({ top: 0 }); }} className="text-sm text-neutral-500 hover:text-white transition-colors">
-                  All Products
-                </button>
-              </li>
-              <li>
-                <button onClick={() => { setSelectedCategoryId(null); setStoreView('shop'); window.scrollTo({ top: 0 }); }} className="text-sm text-neutral-500 hover:text-white transition-colors">
-                  New Arrivals
-                </button>
-              </li>
-              <li>
-                <button onClick={() => { setSelectedCategoryId(null); setStoreView('shop'); window.scrollTo({ top: 0 }); }} className="text-sm text-neutral-500 hover:text-white transition-colors">
-                  Best Sellers
-                </button>
-              </li>
-              <li>
-                <button onClick={() => { setSelectedCategoryId(null); setStoreView('shop'); window.scrollTo({ top: 0 }); }} className="text-sm text-neutral-500 hover:text-white transition-colors">
-                  Sale
-                </button>
-              </li>
-            </ul>
-          </div>
+          {/* Dynamic columns */}
+          {displayColumns.map((col, colIdx) => (
+            <div key={colIdx} className="lg:col-span-2">
+              <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-4">{col.title}</h4>
+              <ul className="space-y-2.5">
+                {col.links.map((link, linkIdx) => (
+                  <li key={linkIdx}>
+                    <button
+                      onClick={() => handleLinkClick(link)}
+                      className="text-sm text-neutral-500 hover:text-white transition-colors"
+                    >
+                      {link.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
 
-          {/* Categories - spans 2 cols */}
-          <div className="lg:col-span-2">
-            <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-4">Categories</h4>
-            <ul className="space-y-2.5">
-              {categories.slice(0, 6).map((cat) => (
-                <li key={cat.id}>
-                  <button onClick={() => handleCategoryNav(cat.id)} className="text-sm text-neutral-500 hover:text-white transition-colors">
-                    {cat.name}
-                  </button>
-                </li>
-              ))}
-              {categories.length > 6 && (
-                <li>
-                  <button onClick={() => { setSelectedCategoryId(null); setStoreView('shop'); window.scrollTo({ top: 0 }); }} className="text-sm text-neutral-500 hover:text-white transition-colors">
-                    All Categories →
-                  </button>
-                </li>
+          {/* Categories column - only if enabled and no custom columns replaced it */}
+          {showCategories && customColumns.length === 0 && (
+            <div className="lg:col-span-2">
+              <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-4">Categories</h4>
+              <ul className="space-y-2.5">
+                {categories.slice(0, 6).map((cat) => (
+                  <li key={cat.id}>
+                    <button onClick={() => handleCategoryNav(cat.id)} className="text-sm text-neutral-500 hover:text-white transition-colors">
+                      {cat.name}
+                    </button>
+                  </li>
+                ))}
+                {categories.length > 6 && (
+                  <li>
+                    <button onClick={() => { setSelectedCategoryId(null); setStoreView('shop'); window.scrollTo({ top: 0 }); }} className="text-sm text-neutral-500 hover:text-white transition-colors">
+                      All Categories →
+                    </button>
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
+
+          {/* Newsletter - only if enabled */}
+          {showNewsletter && (
+            <div className="col-span-2 lg:col-span-2">
+              <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-4">Stay Updated</h4>
+              <p className="text-sm text-neutral-500 mb-4">
+                Get notified about new products and exclusive offers.
+              </p>
+              <form onSubmit={handleSubscribe} className="space-y-2">
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Your email"
+                  className="h-10 bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-600 text-sm focus-visible:ring-amber-500/20 focus-visible:border-amber-500"
+                  required
+                />
+                <Button
+                  type="submit"
+                  className="w-full h-10 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg"
+                >
+                  Subscribe <Send className="ml-2 size-3.5" />
+                </Button>
+              </form>
+              {subscribed && (
+                <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-xs text-emerald-400 mt-2">
+                  Subscribed successfully!
+                </motion.p>
               )}
-            </ul>
-          </div>
-
-          {/* Customer Service - spans 2 cols */}
-          <div className="lg:col-span-2">
-            <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-4">Help</h4>
-            <ul className="space-y-2.5">
-              <li>
-                <a href={`mailto:${settings.contactEmail}`} className="text-sm text-neutral-500 hover:text-white transition-colors">
-                  Contact Us
-                </a>
-              </li>
-              <li>
-                <button onClick={() => setStoreView('orders')} className="text-sm text-neutral-500 hover:text-white transition-colors">
-                  Order Tracking
-                </button>
-              </li>
-              <li>
-                <span className="text-sm text-neutral-500">Shipping & Returns</span>
-              </li>
-              <li>
-                <span className="text-sm text-neutral-500">FAQ</span>
-              </li>
-              <li>
-                <span className="text-sm text-neutral-500">Size Guide</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Newsletter - spans 2 cols */}
-          <div className="col-span-2 lg:col-span-2">
-            <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-4">Stay Updated</h4>
-            <p className="text-sm text-neutral-500 mb-4">
-              Get notified about new products and exclusive offers.
-            </p>
-            <form onSubmit={handleSubscribe} className="space-y-2">
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Your email"
-                className="h-10 bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-600 text-sm focus-visible:ring-amber-500/20 focus-visible:border-amber-500"
-                required
-              />
-              <Button
-                type="submit"
-                className="w-full h-10 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg"
-              >
-                Subscribe <Send className="ml-2 size-3.5" />
-              </Button>
-            </form>
-            {subscribed && (
-              <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-xs text-emerald-400 mt-2">
-                Subscribed successfully!
-              </motion.p>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 

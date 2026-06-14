@@ -300,6 +300,15 @@ export async function POST() {
       { key: 'domainName', value: 'shopwithfaisu.com', group: 'general', label: 'Domain Name' },
       { key: 'metaTitle', value: 'Shop with Faisu!! | Premium Products, Beautifully Presented', group: 'seo', label: 'Meta Title' },
       { key: 'metaDescription', value: 'Discover curated collections of premium products across 20 categories. Clean design, fair prices, exceptional quality.', group: 'seo', label: 'Meta Description' },
+      { key: 'heroSlides', value: '["/banners/hero-1.png","/banners/hero-2.png","/banners/hero-3.png","/banners/hero-4.png","/banners/hero-5.png"]', group: 'homepage', label: 'Hero Slides' },
+      { key: 'heroSlideInterval', value: '5', group: 'homepage', label: 'Hero Slide Interval (seconds)' },
+      { key: 'heroOverlayOpacity', value: '0.6', group: 'homepage', label: 'Hero Overlay Opacity' },
+      { key: 'announcementBar', value: '🚚 Free shipping on orders over $75 — Shop Now!', group: 'homepage', label: 'Announcement Bar Text' },
+      { key: 'announcementBarEnabled', value: 'true', group: 'homepage', label: 'Announcement Bar Enabled' },
+      { key: 'navLinks', value: '[{"label":"Home","view":"home"},{"label":"Shop","view":"shop"}]', group: 'navigation', label: 'Navigation Links' },
+      { key: 'heroSlideTexts', value: '[]', group: 'homepage', label: 'Hero Slide Texts' },
+      { key: 'footerColumns', value: '[]', group: 'footer', label: 'Footer Columns Config' },
+      { key: 'footerEnabled', value: 'true', group: 'footer', label: 'Footer Enabled' },
     ];
     await db.storeSetting.createMany({ data: settings });
 

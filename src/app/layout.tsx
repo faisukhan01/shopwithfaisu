@@ -12,7 +12,8 @@ export const metadata: Metadata = {
   title: "Shop with Faisu!! | Premium Products, Beautifully Presented",
   description: "Discover curated collections of premium products. Clean design, fair prices, exceptional quality.",
   icons: {
-    icon: "/logo.svg",
+    icon: "/logo.png",
+    apple: "/logo.png",
   },
 };
 

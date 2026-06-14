@@ -58,6 +58,7 @@ export async function GET() {
     const formattedTopProducts = topProducts.map((p) => ({
       ...p,
       images: JSON.parse(p.images),
+      revenue: p.price * p.soldCount,
     }))
 
     return NextResponse.json({

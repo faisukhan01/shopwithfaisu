@@ -1,0 +1,1151 @@
+     1→'use client';
+     2→
+     3→import { useEffect, useState, useCallback } from 'react';
+     4→import {
+     5→  Save,
+     6→  RotateCcw,
+     7→  Loader2,
+     8→  ArrowUp,
+     9→  ArrowDown,
+    10→  Eye,
+    11→  Shield,
+    12→  Globe,
+    13→  Palette,
+    14→  Megaphone,
+    15→  ImageIcon,
+    16→} from 'lucide-react';
+    17→import { toast } from 'sonner';
+    18→import { Button } from '@/components/ui/button';
+    19→import { Input } from '@/components/ui/input';
+    20→import { Label } from '@/components/ui/label';
+    21→import { Textarea } from '@/components/ui/textarea';
+    22→import { Skeleton } from '@/components/ui/skeleton';
+    23→import { Separator } from '@/components/ui/separator';
+    24→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+    25→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+    26→import { Switch } from '@/components/ui/switch';
+    27→import { Slider } from '@/components/ui/slider';
+    28→import { Badge } from '@/components/ui/badge';
+    29→import { useSettingsStore } from '@/lib/stores';
+    30→import { DEFAULT_SETTINGS } from '@/lib/types';
+    31→import type { StoreSettings } from '@/lib/types';
+    32→
+    33→const tabs = [
+    34→  { value: 'general', label: 'General' },
+    35→  { value: 'appearance', label: 'Appearance' },
+    36→  { value: 'hero-slides', label: 'Hero Slides' },
+    37→  { value: 'announcement', label: 'Announcement' },
+    38→  { value: 'contact', label: 'Contact' },
+    39→  { value: 'social', label: 'Social' },
+    40→  { value: 'homepage', label: 'Homepage' },
+    41→  { value: 'seo', label: 'SEO' },
+    42→  { value: 'domain', label: 'Domain' },
+    43→];
+    44→
+    45→const DEFAULT_HERO_SLIDES = [
+    46→  '/banners/hero-1.png',
+    47→  '/banners/hero-2.png',
+    48→  '/banners/hero-3.png',
+    49→  '/banners/hero-4.png',
+    50→  '/banners/hero-5.png',
+    51→];
+    52→
+    53→interface HeroSlide {
+    54→  url: string;
+    55→  enabled: boolean;
+    56→}
+    57→
+    58→interface SaveState {
+    59→  [key: string]: boolean;
+    60→}
+    61→
+    62→export default function SettingsManager() {
+    63→  const { settings: storeSettings, setSettings } = useSettingsStore();
+    64→  const [settings, setLocalSettings] = useState<StoreSettings>(storeSettings);
+    65→  const [loading, setLoading] = useState(true);
+    66→  const [saving, setSaving] = useState<SaveState>({});
+    67→
+    68→  // Hero slides local state
+    69→  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>(
+    70→    DEFAULT_HERO_SLIDES.map((url) => ({ url, enabled: true }))
+    71→  );
+    72→  const [slideInterval, setSlideInterval] = useState(5);
+    73→  const [overlayOpacity, setOverlayOpacity] = useState(0.6);
+    74→
+    75→  // Announcement local state
+    76→  const [announcementEnabled, setAnnouncementEnabled] = useState(true);
+    77→  const [announcementText, setAnnouncementText] = useState(
+    78→    '🚚 Free shipping on orders over $75 — Shop Now!'
+    79→  );
+    80→
+    81→  // Appearance preview state
+    82→  const [showPreview, setShowPreview] = useState(false);
+    83→
+    84→  useEffect(() => {
+    85→    fetch('/api/settings')
+    86→      .then((r) => r.json())
+    87→      .then((json) => {
+    88→        if (json && typeof json === 'object' && !Array.isArray(json)) {
+    89→          const raw = json.settings || json;
+    90→          const mapped: StoreSettings = { ...DEFAULT_SETTINGS };
+    91→          for (const [key, value] of Object.entries(raw)) {
+    92→            if (key in mapped) {
+    93→              const k = key as keyof StoreSettings;
+    94→              if (['freeShippingThreshold', 'taxRate', 'heroSlideInterval', 'heroOverlayOpacity'].includes(key)) {
+    95→                (mapped as Record<string, unknown>)[key] = parseFloat(value as string) || 0;
+    96→              } else if (key === 'announcementBarEnabled') {
+    97→                (mapped as Record<string, unknown>)[key] = value === 'true';
+    98→              } else {
+    99→                (mapped as Record<string, unknown>)[key] = value;
+   100→              }
+   101→            }
+   102→          }
+   103→          setLocalSettings(mapped);
+   104→          setSettings(mapped);
+   105→
+   106→          // Parse hero slides
+   107→          try {
+   108→            const parsed = JSON.parse(mapped.heroSlides);
+   109→            if (Array.isArray(parsed)) {
+   110→              setHeroSlides(parsed.map((url: string, i: number) => ({ url, enabled: true })));
+   111→            }
+   112→          } catch {
+   113→            // keep defaults
+   114→          }
+   115→          setSlideInterval(mapped.heroSlideInterval);
+   116→          setOverlayOpacity(mapped.heroOverlayOpacity);
+   117→          setAnnouncementEnabled(mapped.announcementBarEnabled);
+   118→          setAnnouncementText(mapped.announcementBar);
+   119→        }
+   120→        setLoading(false);
+   121→      })
+   122→      .catch(() => {
+   123→        setLoading(false);
+   124→      });
+   125→  }, [setSettings]);
+   126→
+   127→  const updateField = (key: keyof StoreSettings, value: string | number | boolean) => {
+   128→    setLocalSettings((prev) => ({ ...prev, [key]: value }));
+   129→  };
+   130→
+   131→  const handleSave = async (group: string, fields: (keyof StoreSettings)[]) => {
+   132→    setSaving((prev) => ({ ...prev, [group]: true }));
+   133→    const body: Record<string, string | number | boolean> = {};
+   134→    for (const key of fields) {
+   135→      body[key] = settings[key] as string | number | boolean;
+   136→    }
+   137→
+   138→    try {
+   139→      const res = await fetch('/api/settings', {
+   140→        method: 'PUT',
+   141→        headers: { 'Content-Type': 'application/json' },
+   142→        body: JSON.stringify(body),
+   143→      });
+   144→      if (!res.ok) throw new Error();
+   145→      const partial: Partial<StoreSettings> = {};
+   146→      for (const key of fields) {
+   147→        partial[key] = settings[key];
+   148→      }
+   149→      setSettings(partial);
+   150→      toast.success(`${group} settings saved`);
+   151→    } catch {
+   152→      toast.error(`Failed to save ${group} settings`);
+   153→    } finally {
+   154→      setSaving((prev) => ({ ...prev, [group]: false }));
+   155→    }
+   156→  };
+   157→
+   158→  const handleSaveHeroSlides = async () => {
+   159→    setSaving((prev) => ({ ...prev, 'hero-slides': true }));
+   160→    const activeSlides = heroSlides
+   161→      .filter((s) => s.enabled)
+   162→      .map((s) => s.url);
+   163→    const body: Record<string, string | number> = {
+   164→      heroSlides: JSON.stringify(activeSlides),
+   165→      heroSlideInterval: slideInterval,
+   166→      heroOverlayOpacity: overlayOpacity,
+   167→    };
+   168→
+   169→    try {
+   170→      const res = await fetch('/api/settings', {
+   171→        method: 'PUT',
+   172→        headers: { 'Content-Type': 'application/json' },
+   173→        body: JSON.stringify(body),
+   174→      });
+   175→      if (!res.ok) throw new Error();
+   176→      setSettings({
+   177→        heroSlides: JSON.stringify(activeSlides),
+   178→        heroSlideInterval: slideInterval,
+   179→        heroOverlayOpacity: overlayOpacity,
+   180→      });
+   181→      toast.success('Hero slides settings saved');
+   182→    } catch {
+   183→      toast.error('Failed to save hero slides settings');
+   184→    } finally {
+   185→      setSaving((prev) => ({ ...prev, 'hero-slides': false }));
+   186→    }
+   187→  };
+   188→
+   189→  const handleSaveAnnouncement = async () => {
+   190→    setSaving((prev) => ({ ...prev, announcement: true }));
+   191→    const body: Record<string, string | boolean> = {
+   192→      announcementBar: announcementText,
+   193→      announcementBarEnabled: announcementEnabled,
+   194→    };
+   195→
+   196→    try {
+   197→      const res = await fetch('/api/settings', {
+   198→        method: 'PUT',
+   199→        headers: { 'Content-Type': 'application/json' },
+   200→        body: JSON.stringify(body),
+   201→      });
+   202→      if (!res.ok) throw new Error();
+   203→      setSettings({
+   204→        announcementBar: announcementText,
+   205→        announcementBarEnabled: announcementEnabled,
+   206→      });
+   207→      toast.success('Announcement settings saved');
+   208→    } catch {
+   209→      toast.error('Failed to save announcement settings');
+   210→    } finally {
+   211→      setSaving((prev) => ({ ...prev, announcement: false }));
+   212→    }
+   213→  };
+   214→
+   215→  const handleResetDefaults = () => {
+   216→    setLocalSettings({ ...DEFAULT_SETTINGS });
+   217→    setSettings(DEFAULT_SETTINGS);
+   218→    toast.info('Settings reset to defaults. Click Save to apply.');
+   219→  };
+   220→
+   221→  const moveSlide = useCallback((index: number, direction: 'up' | 'down') => {
+   222→    setHeroSlides((prev) => {
+   223→      const next = [...prev];
+   224→      const target = direction === 'up' ? index - 1 : index + 1;
+   225→      if (target < 0 || target >= next.length) return prev;
+   226→      [next[index], next[target]] = [next[target], next[index]];
+   227→      return next;
+   228→    });
+   229→  }, []);
+   230→
+   231→  const toggleSlide = useCallback((index: number) => {
+   232→    setHeroSlides((prev) =>
+   233→      prev.map((s, i) => (i === index ? { ...s, enabled: !s.enabled } : s))
+   234→    );
+   235→  }, []);
+   236→
+   237→  const generalFields: (keyof StoreSettings)[] = [
+   238→    'storeName', 'storeTagline', 'storeDescription', 'currency', 'currencySymbol',
+   239→    'freeShippingThreshold', 'taxRate',
+   240→  ];
+   241→
+   242→  const appearanceFields: (keyof StoreSettings)[] = ['primaryColor', 'accentColor'];
+   243→
+   244→  const contactFields: (keyof StoreSettings)[] = ['contactEmail', 'contactPhone', 'address'];
+   245→
+   246→  const socialFields: (keyof StoreSettings)[] = ['socialFacebook', 'socialInstagram', 'socialTwitter', 'socialYoutube'];
+   247→
+   248→  const homepageFields: (keyof StoreSettings)[] = [
+   249→    'heroTitle', 'heroSubtitle', 'heroCta', 'heroImage', 'footerText', 'copyrightText',
+   250→  ];
+   251→
+   252→  const seoFields: (keyof StoreSettings)[] = ['metaTitle', 'metaDescription'];
+   253→
+   254→  const domainFields: (keyof StoreSettings)[] = ['domainName'];
+   255→
+   256→  const SectionFooter = ({ group, fields, onSave }: { group: string; fields: (keyof StoreSettings)[]; onSave?: () => void }) => (
+   257→    <div className="flex items-center justify-end pt-4 border-t border-zinc-100 mt-6">
+   258→      <Button
+   259→        onClick={onSave || (() => handleSave(group, fields))}
+   260→        disabled={saving[group]}
+   261→        className="bg-zinc-900 hover:bg-zinc-800 text-white min-w-[120px]"
+   262→      >
+   263→        {saving[group] ? (
+   264→          <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+   265→        ) : (
+   266→          <Save className="h-4 w-4 mr-1.5" />
+   267→        )}
+   268→        Save Changes
+   269→      </Button>
+   270→    </div>
+   271→  );
+   272→
+   273→  if (loading) {
+   274→    return (
+   275→      <div className="space-y-6">
+   276→        <div className="flex items-center justify-between">
+   277→          <div>
+   278→            <Skeleton className="h-8 w-48 mb-2" />
+   279→            <Skeleton className="h-4 w-64" />
+   280→          </div>
+   281→        </div>
+   282→        <Skeleton className="h-10 w-full max-w-4xl" />
+   283→        <div className="space-y-4">
+   284→          {Array.from({ length: 3 }).map((_, i) => (
+   285→            <Skeleton key={i} className="h-32 w-full" />
+   286→          ))}
+   287→        </div>
+   288→      </div>
+   289→    );
+   290→  }
+   291→
+   292→  return (
+   293→    <div className="space-y-6">
+   294→      {/* Header */}
+   295→      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+   296→        <div>
+   297→          <h2 className="text-2xl font-bold text-zinc-900">Settings</h2>
+   298→          <p className="text-sm text-zinc-500 mt-1">
+   299→            Configure your store appearance, content, and behavior
+   300→          </p>
+   301→        </div>
+   302→        <Button
+   303→          variant="outline"
+   304→          className="text-zinc-600"
+   305→          onClick={handleResetDefaults}
+   306→        >
+   307→          <RotateCcw className="h-4 w-4 mr-1.5" />
+   308→          Reset to Defaults
+   309→        </Button>
+   310→      </div>
+   311→
+   312→      <Tabs defaultValue="general" className="space-y-6">
+   313→        <TabsList className="bg-zinc-100 p-1 h-auto flex-wrap gap-1">
+   314→          {tabs.map((tab) => (
+   315→            <TabsTrigger
+   316→              key={tab.value}
+   317→              value={tab.value}
+   318→              className="data-[state=active]:bg-white data-[state=active]:text-zinc-900 text-sm font-medium text-zinc-500 px-3 py-2 rounded-lg"
+   319→            >
+   320→              {tab.label}
+   321→            </TabsTrigger>
+   322→          ))}
+   323→        </TabsList>
+   324→
+   325→        {/* General Tab */}
+   326→        <TabsContent value="general">
+   327→          <Card className="border-zinc-200/60 shadow-sm">
+   328→            <CardHeader>
+   329→              <CardTitle className="text-base">General Settings</CardTitle>
+   330→              <CardDescription>
+   331→                Basic store information and configuration
+   332→              </CardDescription>
+   333→            </CardHeader>
+   334→            <CardContent className="space-y-5">
+   335→              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+   336→                <div className="space-y-1.5">
+   337→                  <Label htmlFor="storeName">Store Name</Label>
+   338→                  <Input
+   339→                    id="storeName"
+   340→                    value={settings.storeName}
+   341→                    onChange={(e) => updateField('storeName', e.target.value)}
+   342→                    placeholder="Your Store Name"
+   343→                  />
+   344→                </div>
+   345→                <div className="space-y-1.5">
+   346→                  <Label htmlFor="storeTagline">Tagline</Label>
+   347→                  <Input
+   348→                    id="storeTagline"
+   349→                    value={settings.storeTagline}
+   350→                    onChange={(e) => updateField('storeTagline', e.target.value)}
+   351→                    placeholder="Your store tagline"
+   352→                  />
+   353→                </div>
+   354→              </div>
+   355→
+   356→              <div className="space-y-1.5">
+   357→                <Label htmlFor="storeDescription">Store Description</Label>
+   358→                <Textarea
+   359→                  id="storeDescription"
+   360→                  value={settings.storeDescription}
+   361→                  onChange={(e) => updateField('storeDescription', e.target.value)}
+   362→                  placeholder="Describe your store..."
+   363→                  rows={3}
+   364→                />
+   365→              </div>
+   366→
+   367→              <Separator />
+   368→
+   369→              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+   370→                <div className="space-y-1.5">
+   371→                  <Label htmlFor="currency">Currency Code</Label>
+   372→                  <Input
+   373→                    id="currency"
+   374→                    value={settings.currency}
+   375→                    onChange={(e) => updateField('currency', e.target.value)}
+   376→                    placeholder="USD"
+   377→                    className="uppercase"
+   378→                  />
+   379→                </div>
+   380→                <div className="space-y-1.5">
+   381→                  <Label htmlFor="currencySymbol">Currency Symbol</Label>
+   382→                  <Input
+   383→                    id="currencySymbol"
+   384→                    value={settings.currencySymbol}
+   385→                    onChange={(e) => updateField('currencySymbol', e.target.value)}
+   386→                    placeholder="$"
+   387→                  />
+   388→                </div>
+   389→                <div className="space-y-1.5">
+   390→                  <Label htmlFor="taxRate">Tax Rate (%)</Label>
+   391→                  <Input
+   392→                    id="taxRate"
+   393→                    type="number"
+   394→                    step="0.01"
+   395→                    min="0"
+   396→                    value={settings.taxRate}
+   397→                    onChange={(e) => updateField('taxRate', parseFloat(e.target.value) || 0)}
+   398→                    placeholder="0"
+   399→                  />
+   400→                </div>
+   401→              </div>
+   402→
+   403→              <div className="space-y-1.5">
+   404→                <Label htmlFor="freeShippingThreshold">Free Shipping Threshold ($)</Label>
+   405→                <Input
+   406→                  id="freeShippingThreshold"
+   407→                  type="number"
+   408→                  step="0.01"
+   409→                  min="0"
+   410→                  value={settings.freeShippingThreshold}
+   411→                  onChange={(e) => updateField('freeShippingThreshold', parseFloat(e.target.value) || 0)}
+   412→                  placeholder="75"
+   413→                />
+   414→                <p className="text-xs text-zinc-400 mt-1">
+   415→                  Orders above this amount get free shipping. Set to 0 to disable.
+   416→                </p>
+   417→              </div>
+   418→
+   419→              <SectionFooter group="General" fields={generalFields} />
+   420→            </CardContent>
+   421→          </Card>
+   422→        </TabsContent>
+   423→
+   424→        {/* Appearance Tab */}
+   425→        <TabsContent value="appearance">
+   426→          <Card className="border-zinc-200/60 shadow-sm">
+   427→            <CardHeader>
+   428→              <div className="flex items-center gap-2">
+   429→                <Palette className="h-5 w-5 text-zinc-500" />
+   430→                <div>
+   431→                  <CardTitle className="text-base">Appearance Settings</CardTitle>
+   432→                  <CardDescription>
+   433→                    Customize your store colors and visual style
+   434→                  </CardDescription>
+   435→                </div>
+   436→              </div>
+   437→            </CardHeader>
+   438→            <CardContent className="space-y-6">
+   439→              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+   440→                <div className="space-y-3">
+   441→                  <Label>Primary Color</Label>
+   442→                  <div className="flex items-center gap-3">
+   443→                    <div className="relative">
+   444→                      <input
+   445→                        type="color"
+   446→                        value={settings.primaryColor}
+   447→                        onChange={(e) => updateField('primaryColor', e.target.value)}
+   448→                        className="h-12 w-12 rounded-lg border border-zinc-200 cursor-pointer bg-transparent p-0.5"
+   449→                      />
+   450→                    </div>
+   451→                    <div className="flex-1 space-y-1">
+   452→                      <Input
+   453→                        value={settings.primaryColor}
+   454→                        onChange={(e) => updateField('primaryColor', e.target.value)}
+   455→                        className="font-mono text-sm"
+   456→                        placeholder="#1a1a1a"
+   457→                      />
+   458→                      <p className="text-xs text-zinc-400">Buttons, links, and accents</p>
+   459→                    </div>
+   460→                  </div>
+   461→                  {/* Color swatch */}
+   462→                  <div className="flex items-center gap-2">
+   463→                    <span className="text-xs text-zinc-500">Swatch:</span>
+   464→                    <div
+   465→                      className="h-8 w-full max-w-[200px] rounded-md border border-zinc-200 transition-colors"
+   466→                      style={{ backgroundColor: settings.primaryColor }}
+   467→                    />
+   468→                  </div>
+   469→                </div>
+   470→                <div className="space-y-3">
+   471→                  <Label>Accent Color</Label>
+   472→                  <div className="flex items-center gap-3">
+   473→                    <div className="relative">
+   474→                      <input
+   475→                        type="color"
+   476→                        value={settings.accentColor}
+   477→                        onChange={(e) => updateField('accentColor', e.target.value)}
+   478→                        className="h-12 w-12 rounded-lg border border-zinc-200 cursor-pointer bg-transparent p-0.5"
+   479→                      />
+   480→                    </div>
+   481→                    <div className="flex-1 space-y-1">
+   482→                      <Input
+   483→                        value={settings.accentColor}
+   484→                        onChange={(e) => updateField('accentColor', e.target.value)}
+   485→                        className="font-mono text-sm"
+   486→                        placeholder="#e8a838"
+   487→                      />
+   488→                      <p className="text-xs text-zinc-400">Highlights, badges, special elements</p>
+   489→                    </div>
+   490→                  </div>
+   491→                  {/* Color swatch */}
+   492→                  <div className="flex items-center gap-2">
+   493→                    <span className="text-xs text-zinc-500">Swatch:</span>
+   494→                    <div
+   495→                      className="h-8 w-full max-w-[200px] rounded-md border border-zinc-200 transition-colors"
+   496→                      style={{ backgroundColor: settings.accentColor }}
+   497→                    />
+   498→                  </div>
+   499→                </div>
+   500→              </div>
+   501→
+   502→              <Separator />
+   503→
+   504→              {/* Color Preview Panel */}
+   505→              <div className="rounded-lg border border-zinc-200 p-4">
+   506→                <div className="flex items-center justify-between mb-4">
+   507→                  <p className="text-sm font-medium text-zinc-700">Color Preview</p>
+   508→                  <Button
+   509→                    variant="outline"
+   510→                    size="sm"
+   511→                    className="text-xs h-7"
+   512→                    onClick={() => {
+   513→                      setShowPreview(true);
+   514→                      setTimeout(() => setShowPreview(false), 3000);
+   515→                    }}
+   516→                  >
+   517→                    <Eye className="h-3.5 w-3.5 mr-1" />
+   518→                    Live Preview
+   519→                  </Button>
+   520→                </div>
+   521→                <div className="flex flex-wrap items-center gap-3">
+   522→                  <div
+   523→                    className="h-10 w-24 rounded-lg transition-colors"
+   524→                    style={{ backgroundColor: settings.primaryColor }}
+   525→                  />
+   526→                  <div
+   527→                    className="h-10 w-24 rounded-lg transition-colors"
+   528→                    style={{ backgroundColor: settings.accentColor }}
+   529→                  />
+   530→                  <div
+   531→                    className="h-10 px-4 rounded-lg text-white text-xs flex items-center justify-center font-medium transition-colors"
+   532→                    style={{ backgroundColor: settings.primaryColor }}
+   533→                  >
+   534→                    Button
+   535→                  </div>
+   536→                  <div
+   537→                    className="h-10 px-4 rounded-lg text-xs flex items-center justify-center font-medium border transition-colors"
+   538→                    style={{
+   539→                      backgroundColor: settings.accentColor,
+   540→                      color: settings.primaryColor,
+   541→                      borderColor: settings.accentColor,
+   542→                    }}
+   543→                  >
+   544→                    Accent
+   545→                  </div>
+   546→                  <div
+   547→                    className="h-10 px-4 rounded-lg text-xs flex items-center justify-center font-medium border-2 transition-colors"
+   548→                    style={{
+   549→                      borderColor: settings.primaryColor,
+   550→                      color: settings.primaryColor,
+   551→                    }}
+   552→                  >
+   553→                    Outlined
+   554→                  </div>
+   555→                  <Badge
+   556→                    className="text-white text-xs"
+   557→                    style={{ backgroundColor: settings.accentColor }}
+   558→                  >
+   559→                    Badge
+   560→                  </Badge>
+   561→                </div>
+   562→
+   563→                {/* Expanded Live Preview */}
+   564→                {showPreview && (
+   565→                  <div className="mt-4 rounded-lg border border-zinc-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+   566→                    <div
+   567→                      className="h-24 flex items-center justify-center relative"
+   568→                      style={{ backgroundColor: settings.primaryColor }}
+   569→                    >
+   570→                      <div
+   571→                        className="absolute inset-0"
+   572→                        style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
+   573→                      />
+   574→                      <div className="relative z-10 text-center">
+   575→                        <h3 className="text-white font-bold text-lg">{settings.storeName}</h3>
+   576→                        <p className="text-white/70 text-xs mt-1">{settings.storeTagline}</p>
+   577→                      </div>
+   578→                    </div>
+   579→                    <div className="p-3 bg-white">
+   580→                      <div className="flex items-center gap-2">
+   581→                        <div
+   582→                          className="h-8 px-4 rounded-md text-white text-xs font-medium flex items-center"
+   583→                          style={{ backgroundColor: settings.primaryColor }}
+   584→                        >
+   585→                          {settings.heroCta}
+   586→                        </div>
+   587→                        <Badge
+   588→                          className="text-xs text-white"
+   589→                          style={{ backgroundColor: settings.accentColor }}
+   590→                        >
+   591→                          New
+   592→                        </Badge>
+   593→                      </div>
+   594→                    </div>
+   595→                  </div>
+   596→                )}
+   597→              </div>
+   598→
+   599→              <SectionFooter group="Appearance" fields={appearanceFields} />
+   600→            </CardContent>
+   601→          </Card>
+   602→        </TabsContent>
+   603→
+   604→        {/* Hero Slides Tab */}
+   605→        <TabsContent value="hero-slides">
+   606→          <div className="space-y-6">
+   607→            {/* Slide Controls */}
+   608→            <Card className="border-zinc-200/60 shadow-sm">
+   609→              <CardHeader>
+   610→                <div className="flex items-center gap-2">
+   611→                  <ImageIcon className="h-5 w-5 text-zinc-500" />
+   612→                  <div>
+   613→                    <CardTitle className="text-base">Hero Slides</CardTitle>
+   614→                    <CardDescription>
+   615→                      Manage the hero carousel slides on your homepage
+   616→                    </CardDescription>
+   617→                  </div>
+   618→                </div>
+   619→              </CardHeader>
+   620→              <CardContent className="space-y-6">
+   621→                {/* Slide list */}
+   622→                <div className="space-y-3">
+   623→                  {heroSlides.map((slide, index) => (
+   624→                    <div
+   625→                      key={index}
+   626→                      className="flex items-center gap-3 p-3 rounded-lg border border-zinc-200 bg-white group hover:border-zinc-300 transition-colors"
+   627→                    >
+   628→                      {/* Thumbnail */}
+   629→                      <div className="h-16 w-24 rounded-md overflow-hidden bg-zinc-100 flex-shrink-0 border border-zinc-100 flex items-center justify-center">
+   630→                        <img
+   631→                          src={slide.url}
+   632→                          alt={`Hero slide ${index + 1}`}
+   633→                          className="h-full w-full object-cover"
+   634→                          onError={(e) => {
+   635→                            const el = e.target as HTMLImageElement;
+   636→                            el.style.display = 'none';
+   637→                          }}
+   638→                        />
+   639→                      </div>
+   640→
+   641→                      {/* Info */}
+   642→                      <div className="flex-1 min-w-0">
+   643→                        <div className="flex items-center gap-2">
+   644→                          <p className="text-sm font-medium text-zinc-900 truncate">
+   645→                            Slide {index + 1}
+   646→                          </p>
+   647→                          {slide.enabled ? (
+   648→                            <Badge variant="secondary" className="text-emerald-700 bg-emerald-50 text-[10px] px-1.5 py-0">
+   649→                              Active
+   650→                            </Badge>
+   651→                          ) : (
+   652→                            <Badge variant="secondary" className="text-zinc-500 bg-zinc-100 text-[10px] px-1.5 py-0">
+   653→                              Hidden
+   654→                            </Badge>
+   655→                          )}
+   656→                        </div>
+   657→                        <p className="text-xs text-zinc-500 truncate mt-0.5">{slide.url}</p>
+   658→                      </div>
+   659→
+   660→                      {/* Controls */}
+   661→                      <div className="flex items-center gap-1.5 flex-shrink-0">
+   662→                        <Button
+   663→                          variant="ghost"
+   664→                          size="icon"
+   665→                          className="h-8 w-8"
+   666→                          disabled={index === 0}
+   667→                          onClick={() => moveSlide(index, 'up')}
+   668→                        >
+   669→                          <ArrowUp className="h-3.5 w-3.5" />
+   670→                        </Button>
+   671→                        <Button
+   672→                          variant="ghost"
+   673→                          size="icon"
+   674→                          className="h-8 w-8"
+   675→                          disabled={index === heroSlides.length - 1}
+   676→                          onClick={() => moveSlide(index, 'down')}
+   677→                        >
+   678→                          <ArrowDown className="h-3.5 w-3.5" />
+   679→                        </Button>
+   680→                        <div className="flex items-center gap-1.5 ml-1.5 pl-1.5 border-l border-zinc-200">
+   681→                          <Label className="text-xs text-zinc-500">Show</Label>
+   682→                          <Switch
+   683→                            checked={slide.enabled}
+   684→                            onCheckedChange={() => toggleSlide(index)}
+   685→                          />
+   686→                        </div>
+   687→                      </div>
+   688→                    </div>
+   689→                  ))}
+   690→                </div>
+   691→
+   692→                <Separator />
+   693→
+   694→                {/* Interval */}
+   695→                <div className="space-y-3">
+   696→                  <div className="flex items-center justify-between">
+   697→                    <div>
+   698→                      <Label className="text-sm font-medium">Slide Transition Interval</Label>
+   699→                      <p className="text-xs text-zinc-400 mt-0.5">
+   700→                        Seconds between automatic slide transitions
+   701→                      </p>
+   702→                    </div>
+   703→                    <span className="text-sm font-mono font-medium text-zinc-700 bg-zinc-100 px-2.5 py-1 rounded-md">
+   704→                      {slideInterval}s
+   705→                    </span>
+   706→                  </div>
+   707→                  <Slider
+   708→                    value={[slideInterval]}
+   709→                    onValueChange={([v]) => setSlideInterval(v)}
+   710→                    min={2}
+   711→                    max={15}
+   712→                    step={1}
+   713→                    className="w-full"
+   714→                  />
+   715→                  <div className="flex justify-between text-[10px] text-zinc-400">
+   716→                    <span>2s (fast)</span>
+   717→                    <span>15s (slow)</span>
+   718→                  </div>
+   719→                </div>
+   720→
+   721→                <Separator />
+   722→
+   723→                {/* Overlay Opacity */}
+   724→                <div className="space-y-3">
+   725→                  <div className="flex items-center justify-between">
+   726→                    <div>
+   727→                      <Label className="text-sm font-medium">Overlay Opacity</Label>
+   728→                      <p className="text-xs text-zinc-400 mt-0.5">
+   729→                        Controls the dark overlay on hero images
+   730→                      </p>
+   731→                    </div>
+   732→                    <span className="text-sm font-mono font-medium text-zinc-700 bg-zinc-100 px-2.5 py-1 rounded-md">
+   733→                      {(overlayOpacity * 100).toFixed(0)}%
+   734→                    </span>
+   735→                  </div>
+   736→                  <Slider
+   737→                    value={[overlayOpacity * 100]}
+   738→                    onValueChange={([v]) => setOverlayOpacity(v / 100)}
+   739→                    min={0}
+   740→                    max={100}
+   741→                    step={5}
+   742→                    className="w-full"
+   743→                  />
+   744→                  <div className="flex justify-between text-[10px] text-zinc-400">
+   745→                    <span>0% (no overlay)</span>
+   746→                    <span>100% (fully dark)</span>
+   747→                  </div>
+   748→
+   749→                  {/* Opacity preview */}
+   750→                  <div className="flex items-center gap-3 mt-2">
+   751→                    <div className="relative h-12 w-32 rounded-md overflow-hidden bg-gradient-to-br from-zinc-300 to-zinc-500">
+   752→                      <div
+   753→                        className="absolute inset-0 bg-black transition-all"
+   754→                        style={{ opacity: overlayOpacity }}
+   755→                      />
+   756→                      <span className="absolute inset-0 flex items-center justify-center text-white text-xs font-medium z-10">
+   757→                        Preview
+   758→                      </span>
+   759→                    </div>
+   760→                    <p className="text-xs text-zinc-400">Overlay preview with current opacity</p>
+   761→                  </div>
+   762→                </div>
+   763→
+   764→                <SectionFooter group="hero-slides" fields={[]} onSave={handleSaveHeroSlides} />
+   765→              </CardContent>
+   766→            </Card>
+   767→          </div>
+   768→        </TabsContent>
+   769→
+   770→        {/* Announcement Tab */}
+   771→        <TabsContent value="announcement">
+   772→          <Card className="border-zinc-200/60 shadow-sm">
+   773→            <CardHeader>
+   774→              <div className="flex items-center gap-2">
+   775→                <Megaphone className="h-5 w-5 text-zinc-500" />
+   776→                <div>
+   777→                  <CardTitle className="text-base">Announcement Bar</CardTitle>
+   778→                  <CardDescription>
+   779→                    Display a promotional message at the top of your store
+   780→                  </CardDescription>
+   781→                </div>
+   782→              </div>
+   783→            </CardHeader>
+   784→            <CardContent className="space-y-6">
+   785→              {/* Enable/Disable */}
+   786→              <div className="flex items-center justify-between p-4 rounded-lg border border-zinc-200 bg-zinc-50/50">
+   787→                <div className="space-y-0.5">
+   788→                  <Label className="text-sm font-medium">Enable Announcement Bar</Label>
+   789→                  <p className="text-xs text-zinc-400">Show a banner at the very top of your store</p>
+   790→                </div>
+   791→                <Switch
+   792→                  checked={announcementEnabled}
+   793→                  onCheckedChange={setAnnouncementEnabled}
+   794→                />
+   795→              </div>
+   796→
+   797→              {/* Text */}
+   798→              <div className="space-y-1.5">
+   799→                <Label htmlFor="announcementText">Announcement Text</Label>
+   800→                <Textarea
+   801→                  id="announcementText"
+   802→                  value={announcementText}
+   803→                  onChange={(e) => setAnnouncementText(e.target.value)}
+   804→                  placeholder="e.g., 🚚 Free shipping on orders over $75 — Shop Now!"
+   805→                  rows={2}
+   806→                  disabled={!announcementEnabled}
+   807→                />
+   808→                <p className="text-xs text-zinc-400 mt-1">
+   809→                  Supports emoji and plain text. Keep it short for best results.
+   810→                </p>
+   811→              </div>
+   812→
+   813→              <Separator />
+   814→
+   815→              {/* Preview */}
+   816→              <div className="space-y-2">
+   817→                <p className="text-sm font-medium text-zinc-700">Preview</p>
+   818→                {announcementEnabled && announcementText ? (
+   819→                  <div className="rounded-lg border border-zinc-200 overflow-hidden">
+   820→                    <div className="bg-zinc-900 text-white text-center text-sm py-2.5 px-4">
+   821→                      <span className="font-medium">{announcementText}</span>
+   822→                    </div>
+   823→                    <div className="h-20 bg-zinc-50 flex items-center justify-center">
+   824→                      <p className="text-xs text-zinc-400">↑ This will appear at the top of your store</p>
+   825→                    </div>
+   826→                  </div>
+   827→                ) : (
+   828→                  <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50/50 py-8 flex items-center justify-center">
+   829→                    <p className="text-sm text-zinc-400">Announcement bar is disabled</p>
+   830→                  </div>
+   831→                )}
+   832→              </div>
+   833→
+   834→              <SectionFooter group="announcement" fields={[]} onSave={handleSaveAnnouncement} />
+   835→            </CardContent>
+   836→          </Card>
+   837→        </TabsContent>
+   838→
+   839→        {/* Contact Tab */}
+   840→        <TabsContent value="contact">
+   841→          <Card className="border-zinc-200/60 shadow-sm">
+   842→            <CardHeader>
+   843→              <CardTitle className="text-base">Contact Information</CardTitle>
+   844→              <CardDescription>
+   845→                How customers can reach you
+   846→              </CardDescription>
+   847→            </CardHeader>
+   848→            <CardContent className="space-y-5">
+   849→              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+   850→                <div className="space-y-1.5">
+   851→                  <Label htmlFor="contactEmail">Contact Email</Label>
+   852→                  <Input
+   853→                    id="contactEmail"
+   854→                    type="email"
+   855→                    value={settings.contactEmail}
+   856→                    onChange={(e) => updateField('contactEmail', e.target.value)}
+   857→                    placeholder="hello@yourstore.com"
+   858→                  />
+   859→                </div>
+   860→                <div className="space-y-1.5">
+   861→                  <Label htmlFor="contactPhone">Contact Phone</Label>
+   862→                  <Input
+   863→                    id="contactPhone"
+   864→                    type="tel"
+   865→                    value={settings.contactPhone}
+   866→                    onChange={(e) => updateField('contactPhone', e.target.value)}
+   867→                    placeholder="+1 (555) 123-4567"
+   868→                  />
+   869→                </div>
+   870→              </div>
+   871→
+   872→              <div className="space-y-1.5">
+   873→                <Label htmlFor="address">Store Address</Label>
+   874→                <Textarea
+   875→                  id="address"
+   876→                  value={settings.address}
+   877→                  onChange={(e) => updateField('address', e.target.value)}
+   878→                  placeholder="123 Store Street, City, State 12345"
+   879→                  rows={2}
+   880→                />
+   881→              </div>
+   882→
+   883→              <SectionFooter group="Contact" fields={contactFields} />
+   884→            </CardContent>
+   885→          </Card>
+   886→        </TabsContent>
+   887→
+   888→        {/* Social Tab */}
+   889→        <TabsContent value="social">
+   890→          <Card className="border-zinc-200/60 shadow-sm">
+   891→            <CardHeader>
+   892→              <CardTitle className="text-base">Social Media Links</CardTitle>
+   893→              <CardDescription>
+   894→                Connect your social media profiles
+   895→              </CardDescription>
+   896→            </CardHeader>
+   897→            <CardContent className="space-y-5">
+   898→              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+   899→                <div className="space-y-1.5">
+   900→                  <Label htmlFor="socialFacebook">Facebook URL</Label>
+   901→                  <Input
+   902→                    id="socialFacebook"
+   903→                    value={settings.socialFacebook}
+   904→                    onChange={(e) => updateField('socialFacebook', e.target.value)}
+   905→                    placeholder="https://facebook.com/yourstore"
+   906→                  />
+   907→                </div>
+   908→                <div className="space-y-1.5">
+   909→                  <Label htmlFor="socialInstagram">Instagram URL</Label>
+   910→                  <Input
+   911→                    id="socialInstagram"
+   912→                    value={settings.socialInstagram}
+   913→                    onChange={(e) => updateField('socialInstagram', e.target.value)}
+   914→                    placeholder="https://instagram.com/yourstore"
+   915→                  />
+   916→                </div>
+   917→                <div className="space-y-1.5">
+   918→                  <Label htmlFor="socialTwitter">Twitter / X URL</Label>
+   919→                  <Input
+   920→                    id="socialTwitter"
+   921→                    value={settings.socialTwitter}
+   922→                    onChange={(e) => updateField('socialTwitter', e.target.value)}
+   923→                    placeholder="https://twitter.com/yourstore"
+   924→                  />
+   925→                </div>
+   926→                <div className="space-y-1.5">
+   927→                  <Label htmlFor="socialYoutube">YouTube URL</Label>
+   928→                  <Input
+   929→                    id="socialYoutube"
+   930→                    value={settings.socialYoutube}
+   931→                    onChange={(e) => updateField('socialYoutube', e.target.value)}
+   932→                    placeholder="https://youtube.com/@yourstore"
+   933→                  />
+   934→                </div>
+   935→              </div>
+   936→
+   937→              <SectionFooter group="Social" fields={socialFields} />
+   938→            </CardContent>
+   939→          </Card>
+   940→        </TabsContent>
+   941→
+   942→        {/* Homepage Tab */}
+   943→        <TabsContent value="homepage">
+   944→          <Card className="border-zinc-200/60 shadow-sm">
+   945→            <CardHeader>
+   946→              <CardTitle className="text-base">Homepage Content</CardTitle>
+   947→              <CardDescription>
+   948→                Customize your homepage hero section and footer
+   949→              </CardDescription>
+   950→            </CardHeader>
+   951→            <CardContent className="space-y-5">
+   952→              <div className="space-y-1.5">
+   953→                <Label htmlFor="heroTitle">Hero Title</Label>
+   954→                <Input
+   955→                  id="heroTitle"
+   956→                  value={settings.heroTitle}
+   957→                  onChange={(e) => updateField('heroTitle', e.target.value)}
+   958→                  placeholder="Curated for the Modern You"
+   959→                />
+   960→              </div>
+   961→
+   962→              <div className="space-y-1.5">
+   963→                <Label htmlFor="heroSubtitle">Hero Subtitle</Label>
+   964→                <Textarea
+   965→                  id="heroSubtitle"
+   966→                  value={settings.heroSubtitle}
+   967→                  onChange={(e) => updateField('heroSubtitle', e.target.value)}
+   968→                  placeholder="Premium products, thoughtfully selected."
+   969→                  rows={2}
+   970→                />
+   971→              </div>
+   972→
+   973→              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+   974→                <div className="space-y-1.5">
+   975→                  <Label htmlFor="heroCta">Hero CTA Button Text</Label>
+   976→                  <Input
+   977→                    id="heroCta"
+   978→                    value={settings.heroCta}
+   979→                    onChange={(e) => updateField('heroCta', e.target.value)}
+   980→                    placeholder="Shop Now"
+   981→                  />
+   982→                </div>
+   983→                <div className="space-y-1.5">
+   984→                  <Label htmlFor="heroImage">Hero Image URL</Label>
+   985→                  <Input
+   986→                    id="heroImage"
+   987→                    value={settings.heroImage}
+   988→                    onChange={(e) => updateField('heroImage', e.target.value)}
+   989→                    placeholder="https://example.com/hero.jpg"
+   990→                  />
+   991→                </div>
+   992→              </div>
+   993→
+   994→              <Separator />
+   995→
+   996→              <div className="space-y-1.5">
+   997→                <Label htmlFor="footerText">Footer Text</Label>
+   998→                <Textarea
+   999→                  id="footerText"
+  1000→                  value={settings.footerText}
+  1001→                  onChange={(e) => updateField('footerText', e.target.value)}
+  1002→                  placeholder="Footer content text"
+  1003→                  rows={2}
+  1004→                />
+  1005→              </div>
+  1006→
+  1007→              <div className="space-y-1.5">
+  1008→                <Label htmlFor="copyrightText">Copyright Text</Label>
+  1009→                <Input
+  1010→                  id="copyrightText"
+  1011→                  value={settings.copyrightText}
+  1012→                  onChange={(e) => updateField('copyrightText', e.target.value)}
+  1013→                  placeholder="© 2025 Your Store. All rights reserved."
+  1014→                />
+  1015→              </div>
+  1016→
+  1017→              <SectionFooter group="Homepage" fields={homepageFields} />
+  1018→            </CardContent>
+  1019→          </Card>
+  1020→        </TabsContent>
+  1021→
+  1022→        {/* SEO Tab */}
+  1023→        <TabsContent value="seo">
+  1024→          <Card className="border-zinc-200/60 shadow-sm">
+  1025→            <CardHeader>
+  1026→              <CardTitle className="text-base">SEO Settings</CardTitle>
+  1027→              <CardDescription>
+  1028→                Improve your store&apos;s search engine visibility
+  1029→              </CardDescription>
+  1030→            </CardHeader>
+  1031→            <CardContent className="space-y-5">
+  1032→              <div className="space-y-1.5">
+  1033→                <Label htmlFor="metaTitle">Meta Title</Label>
+  1034→                <Input
+  1035→                  id="metaTitle"
+  1036→                  value={settings.metaTitle}
+  1037→                  onChange={(e) => updateField('metaTitle', e.target.value)}
+  1038→                  placeholder="Your Store | Premium Products"
+  1039→                />
+  1040→                <p className="text-xs text-zinc-400 mt-1">
+  1041→                  {settings.metaTitle.length}/60 characters recommended
+  1042→                </p>
+  1043→              </div>
+  1044→
+  1045→              <div className="space-y-1.5">
+  1046→                <Label htmlFor="metaDescription">Meta Description</Label>
+  1047→                <Textarea
+  1048→                  id="metaDescription"
+  1049→                  value={settings.metaDescription}
+  1050→                  onChange={(e) => updateField('metaDescription', e.target.value)}
+  1051→                  placeholder="A brief description of your store for search engines..."
+  1052→                  rows={3}
+  1053→                />
+  1054→                <p className="text-xs text-zinc-400 mt-1">
+  1055→                  {settings.metaDescription.length}/160 characters recommended
+  1056→                </p>
+  1057→              </div>
+  1058→
+  1059→              {/* Preview */}
+  1060→              <div className="rounded-lg border border-zinc-200 p-4 bg-zinc-50/50">
+  1061→                <p className="text-xs text-zinc-500 mb-2">Search Engine Preview</p>
+  1062→                <p className="text-blue-700 text-base font-medium truncate">
+  1063→                  {settings.metaTitle || 'Your Store Name'}
+  1064→                </p>
+  1065→                <p className="text-green-700 text-sm truncate">
+  1066→                  {settings.domainName || 'yourstore.com'}
+  1067→                </p>
+  1068→                <p className="text-sm text-zinc-600 line-clamp-2 mt-0.5">
+  1069→                  {settings.metaDescription || 'Your store description will appear here...'}
+  1070→                </p>
+  1071→              </div>
+  1072→
+  1073→              <SectionFooter group="SEO" fields={seoFields} />
+  1074→            </CardContent>
+  1075→          </Card>
+  1076→        </TabsContent>
+  1077→
+  1078→        {/* Domain Tab */}
+  1079→        <TabsContent value="domain">
+  1080→          <Card className="border-zinc-200/60 shadow-sm">
+  1081→            <CardHeader>
+  1082→              <div className="flex items-center gap-2">
+  1083→                <Globe className="h-5 w-5 text-zinc-500" />
+  1084→                <div>
+  1085→                  <CardTitle className="text-base">Domain Settings</CardTitle>
+  1086→                  <CardDescription>
+  1087→                    Configure your custom domain and SSL
+  1088→                  </CardDescription>
+  1089→                </div>
+  1090→              </div>
+  1091→            </CardHeader>
+  1092→            <CardContent className="space-y-6">
+  1093→              <div className="space-y-1.5">
+  1094→                <Label htmlFor="domainName">Domain Name</Label>
+  1095→                <Input
+  1096→                  id="domainName"
+  1097→                  value={settings.domainName}
+  1098→                  onChange={(e) => updateField('domainName', e.target.value)}
+  1099→                  placeholder="yourstore.com"
+  1100→                />
+  1101→              </div>
+  1102→
+  1103→              {/* URL Preview */}
+  1104→              <div className="rounded-lg border border-zinc-200 p-4 bg-zinc-50/50">
+  1105→                <p className="text-xs text-zinc-500 mb-2">Store URL Preview</p>
+  1106→                <div className="flex items-center gap-2 p-3 bg-white rounded-md border border-zinc-200">
+  1107→                  <span className="text-sm text-zinc-400">https://</span>
+  1108→                  <span className="text-sm font-mono font-medium text-zinc-900">
+  1109→                    {settings.domainName || 'yourstore.com'}
+  1110→                  </span>
+  1111→                </div>
+  1112→              </div>
+  1113→
+  1114→              {/* SSL Status */}
+  1115→              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+  1116→                <div className="flex items-center gap-3">
+  1117→                  <div className="flex items-center justify-center h-10 w-10 rounded-full bg-emerald-100">
+  1118→                    <Shield className="h-5 w-5 text-emerald-600" />
+  1119→                  </div>
+  1120→                  <div>
+  1121→                    <div className="flex items-center gap-2">
+  1122→                      <p className="text-sm font-medium text-emerald-800">SSL Certificate</p>
+  1123→                      <Badge className="bg-emerald-600 text-white text-[10px] px-1.5 py-0 border-0">
+  1124→                        Active
+  1125→                      </Badge>
+  1126→                    </div>
+  1127→                    <p className="text-xs text-emerald-700 mt-0.5">
+  1128→                      Your store is secured with an SSL certificate. All connections are encrypted.
+  1129→                    </p>
+  1130→                  </div>
+  1131→                </div>
+  1132→              </div>
+  1133→
+  1134→              {/* DNS Configuration */}
+  1135→              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+  1136→                <p className="text-sm font-medium text-amber-800">Domain Configuration</p>
+  1137→                <p className="text-xs text-amber-700 mt-1">
+  1138→                  To use a custom domain, configure your DNS settings to point to our servers.
+  1139→                  This typically involves setting up a CNAME record. Contact support if you need
+  1140→                  assistance with domain configuration.
+  1141→                </p>
+  1142→              </div>
+  1143→
+  1144→              <SectionFooter group="Domain" fields={domainFields} />
+  1145→            </CardContent>
+  1146→          </Card>
+  1147→        </TabsContent>
+  1148→      </Tabs>
+  1149→    </div>
+  1150→  );
+  1151→}

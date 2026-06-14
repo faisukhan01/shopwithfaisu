@@ -113,8 +113,8 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     storeName: 'Shop with Faisu!!',
     storeTagline: 'Where Style Meets Simplicity',
     storeDescription: 'Discover curated collections of premium products at Shop with Faisu!!. Clean design, fair prices, exceptional quality.',
-    storeLogo: '',
-    storeFavicon: '',
+    storeLogo: '/logo.svg',
+    storeFavicon: '/logo.svg',
     primaryColor: '#1a1a1a',
     accentColor: '#e8a838',
     currency: 'USD',
@@ -137,6 +137,15 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     domainName: 'shopwithfaisu.com',
     metaTitle: 'Shop with Faisu!! | Premium Products, Beautifully Presented',
     metaDescription: 'Discover curated collections of premium products. Clean design, fair prices, exceptional quality.',
+    heroSlides: '["/banners/hero-1.jpg","/banners/hero-2.jpg","/banners/hero-3.jpg","/banners/hero-4.jpg","/banners/hero-5.jpg"]',
+    heroSlideInterval: 5,
+    heroOverlayOpacity: 0.6,
+    announcementBar: '🚚 Free shipping on orders over $75 — Shop Now!',
+    announcementBarEnabled: true,
+    navLinks: '[{"label":"Home","view":"home"},{"label":"Shop","view":"shop"}]',
+    heroSlideTexts: '[{"tagline":"Fresh Groceries","title":"Farm-Fresh to Your Door","subtitle":"Premium quality fruits, vegetables & organic essentials delivered fresh.","cta":"Shop Groceries","theme":"dark"},{"tagline":"New Collection","title":"Elevate Your Style","subtitle":"Discover curated fashion pieces for every occasion and every you.","cta":"Shop Fashion","theme":"dark"},{"tagline":"Latest Tech","title":"Gadgets That Inspire","subtitle":"Cutting-edge electronics and accessories at unbeatable prices.","cta":"Shop Electronics","theme":"dark"},{"tagline":"Beauty Essentials","title":"Glow From Within","subtitle":"Premium skincare, makeup & wellness products for your daily ritual.","cta":"Shop Beauty","theme":"dark"},{"tagline":"Home & Living","title":"Make It Yours","subtitle":"Transform your space with curated home decor and furnishings.","cta":"Shop Home","theme":"dark"}]',
+    footerColumns: '[]',
+    footerEnabled: true,
   },
   setSettings: (newSettings) =>
     set((state) => ({ settings: { ...state.settings, ...newSettings } })),
@@ -145,8 +154,8 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
       storeName: 'Shop with Faisu!!',
       storeTagline: 'Where Style Meets Simplicity',
       storeDescription: 'Discover curated collections of premium products at Shop with Faisu!!. Clean design, fair prices, exceptional quality.',
-      storeLogo: '',
-      storeFavicon: '',
+      storeLogo: '/logo.svg',
+      storeFavicon: '/logo.svg',
       primaryColor: '#1a1a1a',
       accentColor: '#e8a838',
       currency: 'USD',
@@ -169,14 +178,25 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
       domainName: 'shopwithfaisu.com',
       metaTitle: 'Shop with Faisu!! | Premium Products, Beautifully Presented',
       metaDescription: 'Discover curated collections of premium products. Clean design, fair prices, exceptional quality.',
+      heroSlides: '["/banners/hero-1.jpg","/banners/hero-2.jpg","/banners/hero-3.jpg","/banners/hero-4.jpg","/banners/hero-5.jpg"]',
+      heroSlideInterval: 5,
+      heroOverlayOpacity: 0.6,
+      announcementBar: '🚚 Free shipping on orders over $75 — Shop Now!',
+      announcementBarEnabled: true,
+      navLinks: '[{"label":"Home","view":"home"},{"label":"Shop","view":"shop"}]',
+      heroSlideTexts: '[{"tagline":"Fresh Groceries","title":"Farm-Fresh to Your Door","subtitle":"Premium quality fruits, vegetables & organic essentials delivered fresh.","cta":"Shop Groceries","theme":"dark"},{"tagline":"New Collection","title":"Elevate Your Style","subtitle":"Discover curated fashion pieces for every occasion and every you.","cta":"Shop Fashion","theme":"dark"},{"tagline":"Latest Tech","title":"Gadgets That Inspire","subtitle":"Cutting-edge electronics and accessories at unbeatable prices.","cta":"Shop Electronics","theme":"dark"},{"tagline":"Beauty Essentials","title":"Glow From Within","subtitle":"Premium skincare, makeup & wellness products for your daily ritual.","cta":"Shop Beauty","theme":"dark"},{"tagline":"Home & Living","title":"Make It Yours","subtitle":"Transform your space with curated home decor and furnishings.","cta":"Shop Home","theme":"dark"}]',
+      footerColumns: '[]',
+      footerEnabled: true,
     };
     const parsed = { ...defaults };
     for (const [key, value] of Object.entries(rawSettings)) {
       if (key in parsed) {
         const k = key as keyof typeof parsed;
         const v = value as string;
-        if (['freeShippingThreshold', 'taxRate'].includes(key)) {
+        if (['freeShippingThreshold', 'taxRate', 'heroSlideInterval', 'heroOverlayOpacity'].includes(key)) {
           (parsed as Record<string, unknown>)[key] = parseFloat(v) || 0;
+        } else if (key === 'announcementBarEnabled' || key === 'footerEnabled') {
+          (parsed as Record<string, unknown>)[key] = v === 'true';
         } else {
           (parsed as Record<string, unknown>)[key] = v;
         }

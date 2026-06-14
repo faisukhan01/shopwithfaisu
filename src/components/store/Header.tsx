@@ -32,11 +32,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useNavigationStore, useCartStore, useSettingsStore, useAuthStore, useWishlistStore } from '@/lib/stores';
-import LoginModal from './LoginModal';
+import type { StoreView } from '@/lib/types';
 
-const NAV_LINKS = [
-  { label: 'Home', view: 'home' as const },
-  { label: 'Shop', view: 'shop' as const },
+interface NavLink {
+  label: string;
+  view: StoreView;
+  icon?: string;
+}
+
+const DEFAULT_NAV_LINKS: NavLink[] = [
+  { label: 'Home', view: 'home' },
+  { label: 'Shop', view: 'shop' },
 ];
 
 export default function Header() {
@@ -55,13 +61,27 @@ export default function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [loginOpen, setLoginOpen] = useState(false);
   const [catDropdownOpen, setCatDropdownOpen] = useState(false);
   const [categories, setCategories] = useState<{ id: string; name: string; slug: string; _count: { products: number } }[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const catTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   const totalItems = getTotalItems();
+
+  // Parse navigation links from settings
+  let navLinks: NavLink[] = DEFAULT_NAV_LINKS;
+  try {
+    if (settings.navLinks) {
+      const parsed = JSON.parse(settings.navLinks);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        navLinks = parsed.map((l: { label: string; view: string; icon?: string }) => ({
+          label: l.label,
+          view: (l.view || 'home') as StoreView,
+          icon: l.icon,
+        }));
+      }
+    }
+  } catch { /* use default */ }
 
   useEffect(() => {
     fetch('/api/categories').then(r => r.json()).then(d => { if (Array.isArray(d)) setCategories(d); }).catch(() => {});
@@ -80,7 +100,7 @@ export default function Header() {
     }
   };
 
-  const handleNavClick = (view: 'home' | 'shop') => {
+  const handleNavClick = (view: StoreView) => {
     setStoreView(view);
     setSelectedCategoryId(null);
     setSearchQuery('');
@@ -97,11 +117,13 @@ export default function Header() {
   return (
     <>
       {/* Top announcement bar */}
-      <div className="bg-neutral-900 text-center py-2 px-4">
-        <p className="text-xs text-neutral-300">
-          Free shipping on orders over {settings.currencySymbol}{settings.freeShippingThreshold} &nbsp;·&nbsp; Use code <span className="font-semibold text-amber-400">WELCOME10</span> for 10% off your first order
-        </p>
-      </div>
+      {settings.announcementBarEnabled !== false && settings.announcementBar && (
+        <div className="bg-neutral-900 text-center py-2 px-4">
+          <p className="text-xs text-neutral-300 tracking-wide">
+            {settings.announcementBar}
+          </p>
+        </div>
+      )}
 
       <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-neutral-100">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -117,10 +139,13 @@ export default function Header() {
                 </SheetTrigger>
                 <SheetContent side="left" className="w-72">
                   <SheetHeader>
-                    <SheetTitle className="text-lg font-semibold text-neutral-900">{settings.storeName}</SheetTitle>
+                    <SheetTitle className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+                      <img src={settings.storeLogo || '/logo.svg'} alt="Logo" className="h-7 w-7" />
+                      {settings.storeName}
+                    </SheetTitle>
                   </SheetHeader>
                   <nav className="flex flex-col gap-1 mt-4 px-2">
-                    {NAV_LINKS.map((link) => (
+                    {navLinks.map((link) => (
                       <button
                         key={link.view}
                         onClick={() => handleNavClick(link.view)}
@@ -170,15 +195,20 @@ export default function Header() {
 
               <button
                 onClick={() => handleNavClick('home')}
-                className="text-lg sm:text-xl font-bold tracking-tight text-neutral-900 hover:text-neutral-700 transition-colors"
+                className="flex items-center gap-2.5 text-lg sm:text-xl font-bold tracking-tight text-neutral-900 hover:text-neutral-700 transition-colors"
               >
-                {settings.storeName}
+                <img
+                  src={settings.storeLogo || '/logo.svg'}
+                  alt="Logo"
+                  className="h-8 w-8"
+                />
+                <span className="hidden sm:inline">{settings.storeName}</span>
               </button>
             </div>
 
             {/* Center: Desktop Nav */}
             <nav className="hidden lg:flex items-center gap-1">
-              {NAV_LINKS.map((link) => (
+              {navLinks.map((link) => (
                 <button
                   key={link.view}
                   onClick={() => handleNavClick(link.view)}
@@ -297,7 +327,7 @@ export default function Header() {
                       </DropdownMenuItem>
                     </>
                   ) : (
-                    <DropdownMenuItem onClick={() => setLoginOpen(true)}>
+                    <DropdownMenuItem onClick={() => setStoreView('login')}>
                       <User className="mr-2 size-4" /> Sign In
                     </DropdownMenuItem>
                   )}
@@ -337,7 +367,6 @@ export default function Header() {
         </AnimatePresence>
       </header>
 
-      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
     </>
   );
 }

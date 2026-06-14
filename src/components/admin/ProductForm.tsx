@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { ArrowLeft, Save, X, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, X, Plus, Trash2, Upload, GripVertical, ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -139,6 +139,29 @@ export default function ProductForm() {
     const updated = [...attributes];
     updated[idx] = { ...updated[idx], [field]: val };
     setAttributes(updated);
+  };
+
+  const handleImageUpload = async (file: File, idx: number): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', 'products');
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.url) {
+        updateImageUrl(idx, data.url);
+        return data.url;
+      }
+      toast.error(data.error || 'Upload failed');
+      return null;
+    } catch {
+      toast.error('Upload failed');
+      return null;
+    }
+  };
+
+  const handleAddImageWithUpload = () => {
+    setImageUrls([...imageUrls, '']);
   };
 
   const handleSave = async () => {
@@ -417,37 +440,110 @@ export default function ProductForm() {
           {/* Images */}
           <Card className="border-zinc-200/60 shadow-sm">
             <CardHeader className="pb-4">
-              <CardTitle className="text-base font-semibold">Images</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {imageUrls.map((url, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <Input
-                    value={url}
-                    onChange={(e) => updateImageUrl(idx, e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                  />
-                  {imageUrls.length > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 shrink-0 text-red-400 hover:text-red-600"
-                      onClick={() => removeImageUrl(idx)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base font-semibold">Product Images</CardTitle>
+                  <p className="text-xs text-zinc-400 mt-1">Add up to {imageUrls.length} image{imageUrls.length !== 1 ? 's' : ''} — first image is the main display</p>
                 </div>
-              ))}
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-zinc-600"
-                onClick={addImageUrl}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Add Image URL
-              </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-zinc-600"
+                  onClick={handleAddImageWithUpload}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add Image
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {imageUrls.map((url, idx) => (
+                  <div
+                    key={idx}
+                    className={`relative group rounded-xl border-2 border-dashed transition-colors ${
+                      url.trim() ? 'border-zinc-200 bg-zinc-50' : 'border-zinc-200 bg-zinc-50/50 hover:border-amber-400 hover:bg-amber-50/30'
+                    }`}
+                  >
+                    {url.trim() ? (
+                      <>
+                        {/* Preview */}
+                        <div className="aspect-square rounded-t-[10px] overflow-hidden bg-white">
+                          <img
+                            src={url}
+                            alt={`Product ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        {/* Controls overlay */}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all rounded-xl flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                          <label className="cursor-pointer">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) { handleImageUpload(file, idx); e.target.value = ''; }
+                              }}
+                            />
+                            <div className="w-9 h-9 rounded-lg bg-white/90 flex items-center justify-center hover:bg-white transition-colors">
+                              <Upload className="h-4 w-4 text-zinc-700" />
+                            </div>
+                          </label>
+                          {imageUrls.length > 1 && (
+                            <button
+                              onClick={() => removeImageUrl(idx)}
+                              className="w-9 h-9 rounded-lg bg-white/90 flex items-center justify-center hover:bg-rose-50 hover:text-rose-600 transition-colors text-zinc-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                        {/* Position badge */}
+                        <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/60 text-white text-[10px] font-medium">
+                          {idx === 0 ? 'Main' : `#${idx + 1}`}
+                        </div>
+                        {/* URL input below */}
+                        <div className="p-2">
+                          <Input
+                            value={url}
+                            onChange={(e) => updateImageUrl(idx, e.target.value)}
+                            placeholder="Image URL"
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      /* Empty slot */
+                      <label className="cursor-pointer block">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) { handleImageUpload(file, idx); e.target.value = ''; }
+                          }}
+                        />
+                        <div className="aspect-square rounded-xl flex flex-col items-center justify-center gap-2 text-zinc-400 hover:text-amber-600 transition-colors">
+                          <div className="w-10 h-10 rounded-full bg-zinc-100 group-hover:bg-amber-50 flex items-center justify-center transition-colors">
+                            {idx === 0 ? (
+                              <ImageIcon className="h-5 w-5" />
+                            ) : (
+                              <Plus className="h-5 w-5" />
+                            )}
+                          </div>
+                          <span className="text-xs font-medium">Upload</span>
+                        </div>
+                      </label>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-zinc-400 mt-3 text-center">
+                Drag to reorder • Click upload or paste a URL • First image is the main product photo
+              </p>
             </CardContent>
           </Card>
 

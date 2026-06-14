@@ -9,6 +9,8 @@ import CheckoutForm from '@/components/store/CheckoutForm';
 import CheckoutSuccess from '@/components/store/CheckoutSuccess';
 import OrderHistory from '@/components/store/OrderHistory';
 import WishlistView from '@/components/store/WishlistView';
+import SignInPage from '@/components/store/SignInPage';
+import SignUpPage from '@/components/store/SignUpPage';
 import Footer from '@/components/store/Footer';
 import MegaHomePage from '@/components/store/MegaHomePage';
 import ProductGrid from '@/components/store/ProductGrid';
@@ -91,19 +93,23 @@ export default function Home() {
       case 'checkout-success': return <CheckoutSuccess />;
       case 'orders': return <OrderHistory />;
       case 'wishlist': return <WishlistView />;
+      case 'login': return <SignInPage />;
+      case 'register': return <SignUpPage />;
       default: return <MegaHomePage />;
     }
   };
 
+  const isAuthPage = storeView === 'login' || storeView === 'register';
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <Header />
-      <CartDrawer />
+      {!isAuthPage && <Header />}
+      {!isAuthPage && <CartDrawer />}
       <main className="flex-1">
         <AnimatePresence mode="wait">
           <motion.div
             key={storeView}
-            variants={pageVariants}
+            variants={isAuthPage ? {} : pageVariants}
             initial="initial"
             animate="animate"
             exit="exit"
@@ -113,7 +119,7 @@ export default function Home() {
           </motion.div>
         </AnimatePresence>
       </main>
-      <Footer />
+      {!isAuthPage && <Footer />}
     </div>
   );
 }
