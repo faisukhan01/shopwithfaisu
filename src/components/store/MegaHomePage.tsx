@@ -391,38 +391,7 @@ function CategorySection() {
               ))}
             </div>
 
-            {/* Rest categories - Refined pills (hidden on mobile) */}
-            {rest.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={isInView ? { opacity: 1, y: 0 } : {}}
-                transition={{
-                  duration: 0.6,
-                  delay: 0.6,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                className="hidden sm:flex flex-wrap gap-2 sm:gap-2.5 justify-center"
-              >
-                {rest.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => handleClick(cat.id)}
-                    className="group flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-neutral-200/80 hover:border-amber-600/40 hover:bg-amber-50/50 transition-all duration-300"
-                  >
-                    {cat.image ? (
-                      <img src={cat.image} alt="" className="w-4 h-4 rounded-full object-cover ring-1 ring-neutral-200/60" loading="lazy" />
-                    ) : (
-                      <span className="w-4 h-4 rounded-full bg-neutral-100 flex items-center justify-center text-[8px] font-semibold text-neutral-400">
-                        {cat.name.charAt(0)}
-                      </span>
-                    )}
-                    <span className="text-[13px] font-medium text-neutral-600 group-hover:text-amber-700 transition-colors duration-300">
-                      {cat.name}
-                    </span>
-                  </button>
-                ))}
-              </motion.div>
-            )}
+
 
             {/* View All */}
             <motion.div

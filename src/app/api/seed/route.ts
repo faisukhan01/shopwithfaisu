@@ -255,11 +255,11 @@ export async function POST() {
     // ==================== COUPONS ====================
     await db.coupon.createMany({
       data: [
-        { code: 'WELCOME10', type: 'percentage', value: 10, minOrderAmount: 0, maxUses: 100, usedCount: 34, isActive: true, expiresAt: new Date('2026-12-31') },
-        { code: 'SAVE20', type: 'percentage', value: 20, minOrderAmount: 100, maxUses: 50, usedCount: 12, isActive: true, expiresAt: new Date('2026-06-30') },
-        { code: 'FLAT15', type: 'fixed', value: 15, minOrderAmount: 75, maxUses: 200, usedCount: 78, isActive: true, expiresAt: new Date('2026-12-31') },
-        { code: 'MEGA25', type: 'percentage', value: 25, minOrderAmount: 150, maxUses: 30, usedCount: 5, isActive: true, expiresAt: new Date('2026-09-30') },
-        { code: 'FREESHIP', type: 'fixed', value: 5.99, minOrderAmount: 25, maxUses: 500, usedCount: 156, isActive: true, expiresAt: new Date('2026-12-31') },
+        { code: 'WELCOME10', type: 'percentage', value: 10, minOrder: 0, maxUses: 100, usedCount: 34, isActive: true, expiresAt: new Date('2026-12-31') },
+        { code: 'SAVE20', type: 'percentage', value: 20, minOrder: 100, maxUses: 50, usedCount: 12, isActive: true, expiresAt: new Date('2026-06-30') },
+        { code: 'FLAT15', type: 'fixed', value: 15, minOrder: 75, maxUses: 200, usedCount: 78, isActive: true, expiresAt: new Date('2026-12-31') },
+        { code: 'MEGA25', type: 'percentage', value: 25, minOrder: 150, maxUses: 30, usedCount: 5, isActive: true, expiresAt: new Date('2026-09-30') },
+        { code: 'FREESHIP', type: 'fixed', value: 5.99, minOrder: 25, maxUses: 500, usedCount: 156, isActive: true, expiresAt: new Date('2026-12-31') },
       ],
     });
 
